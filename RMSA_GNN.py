@@ -10,6 +10,7 @@ import tensorflow as tf
 
 # silencing tensorflow warnings
 import logging
+
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 tf.__version__ # printint out tensorflow version used
@@ -22,7 +23,8 @@ from stable_baselines.common.policies import MlpPolicy
 from stable_baselines import results_plotter
 stable_baselines.__version__ # printing out stable_baselines version used
 import gym
-from stable_baselines_extension.policies import FeedForwardGnnPolicy
+from stable_baselines_extension.policies import FeedForwardGnnPolicy, MlpPolicyTest
+from stable_baselines_extension.policies import FeedForwardPolicyTest
 from stable_baselines_extension.policies import GnnPolicy
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
@@ -104,12 +106,12 @@ env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blockin
 
 # here goes the arguments of the policy network to be used
 policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
-                   act_fun=tf.nn.elu,network_graphs= [topology],dm_memory_length= 1) # we use the elu activation function
+                   act_fun=tf.nn.elu,
+                   feature_extraction="mlp",#change this to "gnn" to test gnn extractor
+                   network_graphs= [topology]) # we use the elu activation function
 
-#agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-DeepRMSA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-
-agent = PPO2(FeedForwardGnnPolicy, env, verbose=0, tensorboard_log="./tb/PPO-DeepRMSA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+agent = PPO2(FeedForwardPolicyTest, env, verbose=0, tensorboard_log="./tb/PPO-DeepRMSA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
 a = agent.learn(total_timesteps=100000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "DeepRMSA PPO")
