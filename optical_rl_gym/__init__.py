@@ -16,6 +16,11 @@ register(
 )
 
 register(
+    id='FOCSLabRWA-v0',
+    entry_point='optical_rl_gym.envs:FOCSLabRWAEnv',
+)
+
+register(
     id='QoSConstrainedRA-v0',
     entry_point='optical_rl_gym.envs:QoSConstrainedRA',
 )
