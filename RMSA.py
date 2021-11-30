@@ -106,5 +106,5 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-DeepRMSA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=100000, callback=callback)
+a = agent.learn(total_timesteps=1000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "DeepRMSA PPO")
