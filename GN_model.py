@@ -6,28 +6,83 @@ def db_to_lin(x):
 def lin_to_db(x):
     return 10*np.log10(x)
 
+lam_op = 1550 # operating wavelength centre [nm]
+f_op = 299792458/(lam_op*1e-9) # operating frequency [Hz]
+#f_op = 193.5e12
+c_0 = 299792.458 # speed of light in vacuum [nm/ps] -> needed for calculation of beta2
+rsym = 100 # symbol rate [GBaud]
+h_p = 6.63*1e-34  # Planck's constant [Js]
+alpha_db = 0.2 # loss [dB/km]
+disp = 17 # fibre dispersion [ps/nm/km]
+l_sp = 100 # span length [km]
+nch = 101 # number of channels
+gamma = 1.2 # nonlinearity coefficient [/W/km]
+nf = 4.5 # EDFA noise figure [dB]
+n_span = 1 # number of spans
+#alpha_lin = np.log((10**(al/10)))/2
+alpha_lin = np.log(db_to_lin(alpha_db))/2
+beta2 = (disp*(lam_op**2))/(2*np.pi*c_0) # dispersion coefficient at given wavelength [ps^2/km]
+l_eff = (1 - np.exp(-2*alpha_lin*l_sp))/(2*alpha_lin)  # effective length [km]
+l_effa = 1/(2*alpha_lin)  # the asymptotic effective length [km]
+#pch_lin = 1e-3*db_to_lin(pch_dbm)  # ^ [W]
+bw_tot = (nch*rsym)/1e3 # total BW of Nyquist signal [THz]
+# g_wdm = (pch_lin*nch)/(bw_tot*1e12) # flat-top value of PSD of signal [W/Hz]
+nf_lin = db_to_lin(nf)
+gain = alpha_db*l_sp
+gain_lin = db_to_lin(gain)
+alpha_neper = alpha_db/4.343 # alpha [Neper]
 
-def calculate_etaunif_nikita(gamma,l_eff,beta2,r_sym,alpha_lin,n_ch):
-    '''
-    calculate NLI noise coefficient (eta_unif) in [1/W^2/ch./span] 
-    '''
-    return 1e6*(8/27)*((gamma**2)*alpha_lin*(l_eff**2)/(np.pi*beta2*(r_sym**2)))*np.arcsinh(1e-6*(((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_lin)))
-   
-def calculate_sig_ase_nikita(gain_lin,nf_lin,f_centre,r_sym):
-    '''
-    calculate ASE noise power per ch. per span in [W/ch./span] 
-    '''
-    h_p = 6.6256*1e-34   # [J.s] Planck's constant 
-    return (gain_lin-1)*nf_lin*h_p*f_centre*r_sym*1e9
 
-def calculate_throughput(n_span,r_sym, sig_ase, eta_unif):
-    '''
-    calculate throughput in [Tbps]
-    '''
-    return 1e-3*2*r_sym*np.log2(1+(1/3/n_span)*((4/(sig_ase**2*eta_unif))**(1/3)))
+def calculate_capacity(path_length):
+    """ calculate capacity of the path with a given length"""
+    eta_unif = calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    sig_ase_sq = calculate_sig_ase_nikita(n_span, gain_lin, nf_lin, f_op, rsym)
+    capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
+    return capacity
+############################## NIKITA VERSION ##############################
 
-def calculate_max_snr(n_span,sig_ase, eta_unif):
+def calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, r_sym, alpha_lin, n_ch):
+    '''
+    calculate eta unif as defined by Nikita
+    '''
+    return 1e6*(8/27)*( (n_span*(gamma**2)*l_eff)/(np.pi*beta2*(r_sym**2)) ) * np.arcsinh(1e-6*( ((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_lin)))
+    #return (8/27)*((n_span*(gamma**2)*l_eff)/(np.pi*(beta2)*(r_sym**2))) * np.arcsinh((((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_lin)))
+def calculate_sig_ase_nikita(n_span, gain_lin, nf_lin, f_centre, r_sym):
+    h_p = 6.63*1e-34  # Planck's constant [Js]
+    #return n_span*(np.exp(alpha_neper*l_span) - 1)*nf_lin*h_p*f_centre*r_sym*1e9
+    return n_span*(gain_lin - 1)*nf_lin*h_p*f_centre*r_sym*1e9
+def calculate_throughput(r_sym, sig_ase, eta_unif):
+    '''
+    calculate throughput in Tb/s
+    '''
+    return 1e-3 * 2 * r_sym * np.log2( 1 + (1/3) * ( (4 / (sig_ase**2 * eta_unif))**(1/3) ) )
+
+def calculate_max_snr(sig_ase, eta_unif):
     '''
     calculate the maximum SNR
     '''
-    return (1/3/n_span)*((4/(sig_ase**2*eta_unif))**(1/3))
+    return (1/3) * ( (4 / (sig_ase**2 * eta_unif))**(1/3) )
+
+
+############################## OLD VERSION (based on Pogg) ##############################
+
+# def calculate_gnli_ny(g_wdm, bw_tot, l_effa, l_eff, gamma, beta2, n_span):
+#     '''
+#     calculate the NLI noise power spectral density in W/Hz (assumes total BW in THz, beta2 in ps^2/km, gamma in /W/km, Gwdm in W/Hz)
+#     '''
+#     gnli_0_ny = 1e24*(8/27)*(gamma**2)*(g_wdm**3)*(l_eff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*l_effa*(bw_tot**2)  ) )/(np.pi*beta2*l_effa ))
+#     return gnli_0_ny*n_span  # incoherent addition of NLI noise
+#
+# def calculate_ase_tot(gain_lin, nf_lin, f_centre, r_sym, n_span):
+#     '''
+#     calculate the ASE noise power in [W] (assumes symbol rate in GBd and f in Hz)
+#     '''
+#     h_p = 6.63*1e-34  # Planck's constant [Js]
+#     return nf_lin*h_p*f_centre*(gain_lin - 1)*r_sym*1e9*n_span
+#
+# def calculate_snr(g_nli, ase_tot, pch_lin, b_meas):
+#     '''
+#     calculate linear SNR
+#     '''
+#     # b_meas = BW over which noise is measured in units of GHz, b_meas = r_sym for Nyquist channels
+#     return pch_lin/(ase_tot + g_nli*b_meas*1e9)

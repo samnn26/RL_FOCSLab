@@ -6,24 +6,16 @@ register(
 )
 
 register(
-    id='Test2-v0',
-    entry_point='optical_rl_gym.envs:Test2Env',
-)
-
-register(
-    id='Test-v0',
-    entry_point='optical_rl_gym.envs:TestEnv',
+    id='DeepRMSA-v0',
+    entry_point='optical_rl_gym.envs:DeepRMSAEnv',
 )
 
 register(
     id='RWA-v0',
     entry_point='optical_rl_gym.envs:RWAEnv',
 )
+
 register(
-    id='OPT-v0',
-    entry_point='optical_rl_gym.envs:OpticalNetworkEnv',
-)
-register(
-    id='Test3-v0',
-    entry_point='optical_rl_gym.envs:Test3Env',
+    id='QoSConstrainedRA-v0',
+    entry_point='optical_rl_gym.envs:QoSConstrainedRA',
 )
