@@ -6,6 +6,10 @@ def db_to_lin(x):
 def lin_to_db(x):
     return 10*np.log10(x)
 
+"""
+define global constants - these values are fixed and independent of wavelength for now
+"""
+
 lam_op = 1550 # operating wavelength centre [nm]
 f_op = 299792458/(lam_op*1e-9) # operating frequency [Hz]
 #f_op = 193.5e12
@@ -34,18 +38,21 @@ alpha_neper = alpha_db/4.343 # alpha [Neper]
 
 
 def calculate_capacity(path_length):
-    """ calculate capacity of the path with a given length"""
-    eta_unif = calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, rsym, alpha_neper, nch)
-    sig_ase_sq = calculate_sig_ase_nikita(n_span, gain_lin, nf_lin, f_op, rsym)
+    """ calculate capacity of the path with a given length - if we want to add dependence on the number of channels
+        we can make nch an argument here...
+    """
+    n_sp = int(path_length/l_sp)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
-############################## NIKITA VERSION ##############################
+############################## FUNCTIONS FOR CHECKING PHYSICAL LAYER IMPLEMENTATION ##############################
 
-def calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, r_sym, alpha_lin, n_ch):
+def calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, r_sym, alpha_ne, n_ch):
     '''
     calculate eta unif as defined by Nikita
     '''
-    return 1e6*(8/27)*( (n_span*(gamma**2)*l_eff)/(np.pi*beta2*(r_sym**2)) ) * np.arcsinh(1e-6*( ((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_lin)))
+    return 1e6*(8/27)*( (n_span*(gamma**2)*l_eff)/(np.pi*beta2*(r_sym**2)) ) * np.arcsinh(1e-6*( ((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_ne)))
     #return (8/27)*((n_span*(gamma**2)*l_eff)/(np.pi*(beta2)*(r_sym**2))) * np.arcsinh((((np.pi**2)*beta2*(n_ch**2)*(r_sym**2))/(2*alpha_lin)))
 def calculate_sig_ase_nikita(n_span, gain_lin, nf_lin, f_centre, r_sym):
     h_p = 6.63*1e-34  # Planck's constant [Js]
