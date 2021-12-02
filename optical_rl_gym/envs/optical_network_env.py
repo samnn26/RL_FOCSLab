@@ -4,10 +4,13 @@ import heapq
 import random
 import numpy as np
 import networkx as nx
-from optical_rl_gym.utils import Service, Path, get_k_shortest_paths, get_path_weight
 
+import GN_model
+from optical_rl_gym.utils import Service, Path, get_k_shortest_paths, get_path_weight
+from GN_model import calculate_capacity
 
 class OpticalNetworkEnv(gym.Env):
+
 
 
     def __init__(self, topology=None, episode_length=1000, load=10, mean_service_holding_time=10800.0,
@@ -77,7 +80,7 @@ class OpticalNetworkEnv(gym.Env):
                 for idn2, n2 in enumerate(self.topology.nodes()):
                     if idn1 < idn2:
                         paths = get_k_shortest_paths(self.topology, n1, n2, k_paths)
-                        # print(n1, n2, len(paths))
+                       # print(n1, n2, len(paths))
                         lengths = [get_path_weight(self.topology, path) for path in paths]
                         objs = []
                         for path, length in zip(paths, lengths):
@@ -95,6 +98,18 @@ class OpticalNetworkEnv(gym.Env):
             self.topology_name = topology.graph['name']
             self.k_paths = self.topology.graph['k_paths']
             self.k_shortest_paths = self.topology.graph['ksp']  # just as a more convenient way to access it
+            #print capacities######################################################################################################
+            print("source id, destination id, path length, physical layer capacity")
+            for idn1, n1 in enumerate(self.topology.nodes()):
+                for idn2, n2 in enumerate(self.topology.nodes()):
+                    if (n1 != n2):
+                        paths = self.k_shortest_paths[n1, n2]
+                        for i in range(len(paths)):
+                            path = paths[i]
+                            path_capacity = GN_model.calculate_capacity(path.length)
+                            path_capacity_rounded = "{:.2f}".format(path_capacity)
+                            print(n1, ",", n2, ",", path.length, ",", path_capacity_rounded)
+#################################################################################################################################
         assert node_request_probabilities is None or len(node_request_probabilities) == self.topology.number_of_nodes()
         self.num_spectrum_resources = num_spectrum_resources
         self.topology.graph['num_spectrum_resources'] = num_spectrum_resources
