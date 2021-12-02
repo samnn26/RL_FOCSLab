@@ -23,7 +23,7 @@ policies = []
 # topology_name = 'gbn'
 # topology_name = 'nobel-us'
 # topology_name = 'germany50'
-with open(f'../examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+with open(f'/Users/jnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
     topology = pickle.load(f)
 
 env_args = dict(topology=topology, seed=10, allow_rejection=True, load=load, mean_service_holding_time=25, episode_length=episode_length)
@@ -92,7 +92,7 @@ plt.xlabel('Path index')
 plt.ylabel('Probability')
 plt.legend()
 plt.tight_layout()
-plt.savefig(f'path_action_probability_{load}.svg')
+plt.savefig(f'figures/path_action_probability_{load}.svg')
 plt.close()
 
 plt.figure()
@@ -106,5 +106,5 @@ plt.xlabel('Wavelength index')
 plt.ylabel('Probability')
 plt.legend()
 plt.tight_layout()
-plt.savefig(f'wavelength_action_probability_{load}.svg')
+plt.savefig(f'figures/wavelength_action_probability_{load}.svg')
 plt.close()

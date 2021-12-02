@@ -35,6 +35,10 @@ class RWAEnv(OpticalNetworkEnv):
                          k_paths=k_paths)
 
         # vector that stores the service IDs for which the wavelengths are allocated to
+        """
+        need to change this to allow for multiple service IDs per wavelength - could do as a 2d vector, although this may mean
+        we need to define a maximum number of serices per wavelength, which would have to be large enough that it wasn't exceeded...
+        """
         self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources),
                                                  fill_value=-1, dtype=np.int)
 
@@ -44,12 +48,21 @@ class RWAEnv(OpticalNetworkEnv):
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
+        """
+        don't understand why it is + 1 here, rather than self.reject_action. What is the difference?
+        """
         self.actions_taken = np.zeros((self.k_paths + 1,
                                         self.num_spectrum_resources + 1), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths + 1,
                                         self.num_spectrum_resources + 1), dtype=int)
+        """
+        can probably leave this as-is and overwrite it with an action space wrapper, as Carlos does below...
+        """
         self.action_space = gym.spaces.MultiDiscrete((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action))
+        """
+        Again I don't understand the 10 here - what are the 10 things in the space here?
+        """
         self.observation_space = gym.spaces.Dict(
             {'topology': gym.spaces.Discrete(10),
              'current_service': gym.spaces.Discrete(10)}
@@ -69,6 +82,8 @@ class RWAEnv(OpticalNetworkEnv):
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
     The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
     """
+    """I don't know what actions_output does - why is it incremented here?"""
+    """same for episode_actions"""
     def step(self, action: Sequence[int]):
         path, wavelength = action[0], action[1]
         self.actions_output[path, wavelength] += 1
@@ -122,7 +137,9 @@ class RWAEnv(OpticalNetworkEnv):
 
         # if not only counters, the whole environment needs to be reset
         super().reset()
-
+        """
+        This needs to be modified - the state of each wavelength will no longer be binary, but is represented by a capacity
+        """
         # vector that stores the state of each wavelength, 1=available, 0=used
         self.topology.graph["available_wavelengths"] = np.ones((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
 
@@ -195,6 +212,10 @@ class RWAEnv(OpticalNetworkEnv):
         return {'topology': self.topology,
                 'service': self.service}
 
+    """
+    need to modify provision path method to allow for multiple service IDs on one channel
+    """
+
     def _provision_path(self, path: Path, wavelength: int):
         # usage
         if not self.is_path_free(path, wavelength):
@@ -252,11 +273,15 @@ class RWAEnv(OpticalNetworkEnv):
 
         self.topology[node1][node2]['last_update'] = self.current_time
 
+    """
+    we want to call is_path_free for each of the k-shortest paths on each wavelength in turn - only if none are free
+    do we then move on to the next wavelength
+    """
     def is_path_free(self, path: Path, wavelength: int) -> bool:
         # if wavelength is out of range, return false
         if wavelength > self.num_spectrum_resources:
             return False
-        
+
         # checks over all links if the wavelength is available
         for i in range(len(path.node_list) - 1):
             if self.topology.graph['available_wavelengths'][
@@ -266,6 +291,9 @@ class RWAEnv(OpticalNetworkEnv):
         return True
 
 
+"""
+not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
+"""
 def get_path_capacity(env: RWAEnv, path: Path) -> int:
     capacity = 0
     # checks all wavelengths to see which ones are available
@@ -281,7 +309,11 @@ def get_path_capacity(env: RWAEnv, path: Path) -> int:
             capacity += 1  # increments
     return capacity
 
-
+"""
+this is what we need to do - loop first over the wavelengths and then get the agent to choose the path, after we check its availability
+we need to modify the tracking of the paths, i.e. is_path_free will become is_path_capacity_sufficient() ...
+this is equivalent to Robert's FF-kSP algo.
+"""
 def shortest_path_first_fit(env: RWAEnv) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
         if env.is_path_free(env.k_shortest_paths[env.service.source, env.service.destination][0], wavelength):
@@ -289,7 +321,9 @@ def shortest_path_first_fit(env: RWAEnv) -> Sequence[int]:
     # if no path is found, return out-of-bounds indices
     return (env.k_paths, env.num_spectrum_resources)
 
-
+"""
+this is equivalent to kSP-FF algo in Robert's paper...
+"""
 def shortest_available_path_first_fit(env: RWAEnv) -> Sequence[int]:
     best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
@@ -304,7 +338,9 @@ def shortest_available_path_first_fit(env: RWAEnv) -> Sequence[int]:
                     break
     return decision
 
-
+"""
+this performs kSP-LF, i.e. it chooses the wavelength slot for a given path starting with the last slot and scanning backwards
+"""
 def shortest_available_path_last_fit(env: RWAEnv) -> Sequence[int]:
     best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"

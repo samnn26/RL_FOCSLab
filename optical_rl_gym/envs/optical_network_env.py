@@ -186,6 +186,10 @@ class OpticalNetworkEnv(gym.Env):
         return src, src_id, dst, dst_id
 
 
+    """
+    what is actually in the topology object? We need to know what information the agent is getting...
+    """
+    
     def observation(self):
         """ this method defines the state representation for the RL agent
         :return: topology and service """
