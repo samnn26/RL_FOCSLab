@@ -6,13 +6,15 @@ import GN_model
 
 class Path:
 
-    def __init__(self, path_id, node_list, length,best_modulation=None):
+    def __init__(self, path_id, node_list, length,best_modulation=None,channels=None):
         self.path_id = path_id
         self.node_list = node_list
         self.length = length
         self.best_modulation = best_modulation
         self.hops = len(node_list) - 1
         self.physical_capacity = GN_model.calculate_capacity(length)
+        self.channels = channels
+
 
 
 class Service:
@@ -97,3 +99,9 @@ def evaluate_heuristic(env, heuristic, n_eval_episodes=10,
     if return_episode_rewards:
         return episode_rewards, episode_lengths
     return mean_reward, std_reward
+
+class Channel:
+    def __init__(self, channel_id, available_capacity):
+        self.channel_id = channel_id
+        self.available_capacity = available_capacity
+
