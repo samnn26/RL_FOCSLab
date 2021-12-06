@@ -107,10 +107,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             for src, dst in enumerate(self.topology.nodes()):
                 if src < dst:
                     for path in range(self.k_paths):
-                        p: Path = self.k_shortest_paths[src, dst][path]
+                        p = self.k_shortest_paths[src, dst][path]
                         for ch in range(nch):
                             capacity = GN_model.calculate_lightpath_capacity(ch, p.length)
-                            c: Channel(ch, capacity)
+                            c = Channel(ch, capacity)
                             p.channels[ch] = c
 
     def step(self, action: Sequence[int]):
