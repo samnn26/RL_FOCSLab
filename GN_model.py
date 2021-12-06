@@ -19,7 +19,7 @@ h_p = 6.63*1e-34  # Planck's constant [Js]
 alpha_db = 0.2 # loss [dB/km]
 disp = 17 # fibre dispersion [ps/nm/km]
 l_sp = 100 # span length [km]
-nch = 101 # number of channels
+nch = 100 # number of channels
 gamma = 1.2 # nonlinearity coefficient [/W/km]
 nf = 4.5 # EDFA noise figure [dB]
 n_span = 1 # number of spans
@@ -38,14 +38,23 @@ alpha_neper = alpha_db/4.343 # alpha [Neper]
 
 
 def calculate_capacity(path_length):
-    """ calculate capacity of the path with a given length - if we want to add dependence on the number of channels
-        we can make nch an argument here...
+    """ calculate total capacity across all channels of a path
     """
     n_sp = int(path_length/l_sp)
     eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
+
+def calculate_lightpath_capacity(path_length, wavelength):
+    """
+    calculate capacity of a lightpath - currently wavelength argument does nothing - can be used to do wavelength-dependence
+    """
+    n_sp = int(path_length/l_sp)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
+    capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
+    return capacity/nch
 ############################## FUNCTIONS FOR CHECKING PHYSICAL LAYER IMPLEMENTATION ##############################
 
 def calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, r_sym, alpha_ne, n_ch):
