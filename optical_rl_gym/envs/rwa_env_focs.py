@@ -6,8 +6,10 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from optical_rl_gym.utils import Service, Path
+import GN_model
+from optical_rl_gym.utils import Service, Path, Channel
 from .optical_network_env import OpticalNetworkEnv
+
 
 
 class RWAEnvFOCS(OpticalNetworkEnv):
@@ -84,6 +86,33 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     """
     """I don't know what actions_output does - why is it incremented here?"""
     """same for episode_actions"""
+
+    def update_available_lightpath_capacity(self, source, dest, path_id, channel_id, capacity_allocated):
+        p = self.k_shortest_paths[source, dest][path_id]
+        c = p.channels[channel_id]
+        new_capacity = c.available_capacity - capacity_allocated
+        c.available_capacity = new_capacity
+
+    def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
+        return 100
+        p = self.k_shortest_paths[source, dest][path_id]
+        c = p.channels[channel_id]
+        return c.available_capacity
+
+    def initialise_lightpath_capacities(self):
+        # access through the channels of k shortest paths and initialise to max capacity
+        nch = 101  # call a method in gn model to retriev this
+        channel_capacities = None
+        for src, dst in enumerate(self.topology.nodes()):
+            for src, dst in enumerate(self.topology.nodes()):
+                if src < dst:
+                    for path in range(self.k_paths):
+                        p: Path = self.k_shortest_paths[src, dst][path]
+                        for ch in range(nch):
+                            capacity = GN_model.calculate_lightpath_capacity(ch, p.length)
+                            c: Channel(ch, capacity)
+                            p.channels[ch] = c
+
     def step(self, action: Sequence[int]):
         """
         Steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
@@ -96,7 +125,11 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                     breakpoint()
     # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
     # source,dest,path_id,channel_id
-                    if get_available_channel_capacity(self, self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
+<<<<<<< HEAD
+                    if self.get_available_channel_capacity(self, self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
+=======
+                    if self.get_available_lightpath_capacity(self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
+>>>>>>> a1e13eb15a49611ca6cedd5a8d246a4a342930cd
                         # if there is enough capacity - provision path
                         self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen)
                         # need to exit this loop once request is provisioned
@@ -418,11 +451,7 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
         return self.env.step(self.action(action))
 
 
-def update_available_channel_capacity(self,source,dest,path_id,channel_id,capacity_allocated):
-    print("updating channel capacity...")
 
-def get_available_channel_capacity(self,source,dest,path_id,channel_id):
-    return 100
 # class FirstFitPathOnlyObservation(gym.ObservationWrapper):
 #
 #     def __init__(self, env: RWAEnv):
