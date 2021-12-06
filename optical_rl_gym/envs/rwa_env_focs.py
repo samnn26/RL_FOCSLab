@@ -125,11 +125,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                     breakpoint()
     # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
     # source,dest,path_id,channel_id
-<<<<<<< HEAD
-                    if self.get_available_channel_capacity(self, self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
-=======
+
+                
                     if self.get_available_lightpath_capacity(self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
->>>>>>> a1e13eb15a49611ca6cedd5a8d246a4a342930cd
+
                         # if there is enough capacity - provision path
                         self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen)
                         # need to exit this loop once request is provisioned
