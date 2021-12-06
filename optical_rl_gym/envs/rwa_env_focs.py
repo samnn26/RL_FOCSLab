@@ -89,13 +89,14 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         Steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
         """
     #     request_accepted = False  # something like this to avoid duplicating the update code
-        for kpath in self.k_shortest_paths[self.service.source, self.service.destination]:  # for all kSPs between source and destination
+        for kpath in range(len(self.k_shortest_paths[self.service.source, self.service.destination])):  # for all kSPs between source and destination
+            # breakpoint()
             for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
                 if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen):
-
+                    breakpoint()
     # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
     # source,dest,path_id,channel_id
-                    if get_available_channel_capacity(self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
+                    if get_available_channel_capacity(self, self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
                         # if there is enough capacity - provision path
                         self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen)
                         # need to exit this loop once request is provisioned
