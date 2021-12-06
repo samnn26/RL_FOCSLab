@@ -141,6 +141,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         self.episode_services_processed += 1
 
                         self.topology.graph['services'].append(self.service)
+                        self.update_available_lightpath_capacity(self.service.source, self.service.destination, kpath, wavelen,  self.service.bit_rate)
                         info = {
                             'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
                             'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
@@ -168,6 +169,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
+                self.update_available_lightpath_capacity(self.service.source, self.service.destination, kpath, wavelen,  self.service.bit_rate)
                 self._add_release(self.service)
             else:
                 self.service.accepted = False
