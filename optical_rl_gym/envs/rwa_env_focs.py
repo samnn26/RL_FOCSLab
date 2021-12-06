@@ -86,14 +86,21 @@ class RWAEnv(OpticalNetworkEnv):
     """same for episode_actions"""
     def step(self, action: Sequence[int]):
         """
-        steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
-        for kpath in self.k_shortest_paths[self.service.source, self.service.destination]:  # for all kSPs between source and destination
-            for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
-                if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength):
-                    # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
-                    if get_path_capacity(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength) > self.service.bit_rate:
-                        self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
+        Steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
+        """
+    #     request_accepted = False  # something like this to avoid duplicating the update code
+    #     for kpath in self.k_shortest_paths[self.service.source, self.service.destination]:  # for all kSPs between source and destination
+    #         for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
+    #             if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen):
+    # # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
+    #                 if get_path_capacity(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen) > self.service.bit_rate:
+    #                     # if there is enough capacity - provision path
+    #                     self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen)
+    #                     # need to exit this loop once request is provisioned
+    #                     request_accepted = True
 
+        """
+        Steps 6 onwards in Algorithm 1
         """
         path, wavelength = action[0], action[1]
         self.actions_output[path, wavelength] += 1
