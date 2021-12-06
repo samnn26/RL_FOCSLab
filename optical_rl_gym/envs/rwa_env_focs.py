@@ -88,13 +88,14 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     """same for episode_actions"""
 
     def update_available_lightpath_capacity(self, source, dest, path_id, channel_id, capacity_allocated):
+        return 0 #remove this after testing the method
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
         new_capacity = c.available_capacity - capacity_allocated
         c.available_capacity = new_capacity
 
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
-        return 100
+        return 100 #remove this after testing the method
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
         return c.available_capacity
