@@ -414,6 +414,12 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
     def step(self, action):
         return self.env.step(self.action(action))
 
+
+def update_available_channel_capacity(self,source,dest,path_id,channel_id,capacity_allocated):
+    print("updating channel capacity...")
+
+def get_available_channel_capacity(self,source,dest,path_id,channel_id):
+    return 100
 # class FirstFitPathOnlyObservation(gym.ObservationWrapper):
 #
 #     def __init__(self, env: RWAEnv):
@@ -436,3 +442,5 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
 # def observation(self):
 #     return {'topology': self.topology,
 #             'service': self.service}
+
+
