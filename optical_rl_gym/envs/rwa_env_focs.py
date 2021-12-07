@@ -53,10 +53,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         """
         don't understand why it is + 1 here, rather than self.reject_action. What is the difference?
         """
-        self.actions_taken = np.zeros((self.k_paths + 1,
-                                        self.num_spectrum_resources + 1), dtype=int)
-        self.episode_actions_taken = np.zeros((self.k_paths + 1,
-                                        self.num_spectrum_resources + 1), dtype=int)
+        self.actions_taken = np.zeros((self.k_paths + self.reject_action,
+                                        self.num_spectrum_resources + self.reject_action), dtype=int)
+        self.episode_actions_taken = np.zeros((self.k_paths + self.reject_action,
+                                        self.num_spectrum_resources + self.reject_action), dtype=int)
         """
         can probably leave this as-is and overwrite it with an action space wrapper, as Carlos does below...
         """
@@ -459,7 +459,7 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
         super().__init__(env)
         self.action_space = gym.spaces.Discrete(self.env.k_paths + self.env.reject_action)
         self.observation_space = env.observation_space
-
+        
     """
     This method transforms an action that only selected the path, into an action that selects the path and the first-fit wavelength.
     """
