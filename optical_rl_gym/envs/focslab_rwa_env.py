@@ -18,11 +18,11 @@ class FOCSLabRWAEnv(RWAEnv):
     def __init__(self, topology=None,
                  episode_length=1000,
                  load=10,
-                 mean_service_holding_time=1000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0,
-                 num_spectrum_resources=80,
+                 mean_service_holding_time=1e30,
+                 num_spectrum_resources=100,
                  num_service_classes=1,
                  node_request_probabilities=None,
-                 allow_rejection=True,
+                 allow_rejection=False,
                  k_paths=5,
                  seed=None, reset=True):
         super().__init__(topology=topology,
@@ -43,6 +43,11 @@ class FOCSLabRWAEnv(RWAEnv):
         self.actions_taken = np.zeros(self.k_paths + self.reject_action, dtype=int)
         self.episode_actions_taken = np.zeros(self.k_paths + self.reject_action, dtype=int)
         self.action_space = gym.spaces.Discrete(self.k_paths + self.reject_action)
+        """
+        pre-determine the space dimensions and type here
+        """
+        # self.observation_space = spaces.Tuple( spaces.Discrete(self.k_paths ),
+        #  spaces.Discrete(self.k_paths), spaces.Discrete(self.num_spectrum_resources))
         self.observation_space = gym.spaces.Dict(
             {'topology': gym.spaces.Discrete(10),
              'current_service': gym.spaces.Discrete(10)}
@@ -137,8 +142,17 @@ class FOCSLabRWAEnv(RWAEnv):
         self._new_service = True
 
     def observation(self):
-        return {'topology': self.topology,
-                'service': self.service}
+        """
+        observation space goes here...
+        """
+        #path_options = gym.spaces.Discrete(self.k_paths)
+        # self.observation_space = spaces.Tuple( spaces.Discrete(self.k_paths ),
+        #  spaces.Discrete(self.k_paths), spaces.Discrete(self.num_spectrum_resources))
+        spaces.Tuple( spaces.Discrete(self.k_paths ),
+         spaces.Discrete(self.k_paths), spaces.Discrete(self.num_spectrum_resources))
+        ksp_length = self.topology[self.service.source, self.service.destination]
+        # return {'topology': self.topology,
+        #         'service': self.service}
 
     def _provision_path(self, path):
         # usage
@@ -231,4 +245,3 @@ def least_loaded_path(env: RWAEnv) -> int:
             best_load = cap
             decision = idp
     return decision
-

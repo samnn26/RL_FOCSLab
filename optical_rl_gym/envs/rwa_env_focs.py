@@ -21,7 +21,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     def __init__(self, topology=None,
                  episode_length=1000,
                  load=10,
-                 mean_service_holding_time=10800.0,
+                 mean_service_holding_time=1e100,
                  num_spectrum_resources=80,
                  node_request_probabilities=None,
                  allow_rejection=True,
@@ -116,9 +116,8 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 
     def step(self, action: Sequence[int]):
         """
-        Steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
+        Steps 1-5 in Algorithm 1
         """
-    #     request_accepted = False  # something like this to avoid duplicating the update code
         for kpath in range(len(self.k_shortest_paths[self.service.source, self.service.destination])):  # for all kSPs between source and destination
             # breakpoint()
             for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
@@ -266,7 +265,8 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
         self.current_time = at
 
-        ht = self.rng.expovariate(1 / self.mean_service_holding_time)
+        #ht = self.rng.expovariate(1 / self.mean_service_holding_time)
+        ht = self.mean_service_holding_time
         src, src_id, dst, dst_id = self._get_node_pair()
 
         # release connections up to this point

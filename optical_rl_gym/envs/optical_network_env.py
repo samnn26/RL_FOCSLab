@@ -99,7 +99,7 @@ class OpticalNetworkEnv(gym.Env):
             self.k_paths = self.topology.graph['k_paths']
             self.k_shortest_paths = self.topology.graph['ksp']  # just as a more convenient way to access it
             #print capacities######################################################################################################
-            print("source id, destination id, path length, physical layer capacity")
+            #print("source id, destination id, path length, physical layer capacity")
             for idn1, n1 in enumerate(self.topology.nodes()):
                 for idn2, n2 in enumerate(self.topology.nodes()):
                     if (n1 != n2):
@@ -108,7 +108,7 @@ class OpticalNetworkEnv(gym.Env):
                             path = paths[i]
                             path_capacity = GN_model.calculate_capacity(path.length)
                             path_capacity_rounded = "{:.2f}".format(path_capacity)
-                            print(n1, ",", n2, ",", path.length, ",", path_capacity_rounded)
+                            #print(n1, ",", n2, ",", path.length, ",", path_capacity_rounded)
 #################################################################################################################################
         assert node_request_probabilities is None or len(node_request_probabilities) == self.topology.number_of_nodes()
         self.num_spectrum_resources = num_spectrum_resources
@@ -189,7 +189,7 @@ class OpticalNetworkEnv(gym.Env):
     """
     what is actually in the topology object? We need to know what information the agent is getting...
     """
-    
+
     def observation(self):
         """ this method defines the state representation for the RL agent
         :return: topology and service """
