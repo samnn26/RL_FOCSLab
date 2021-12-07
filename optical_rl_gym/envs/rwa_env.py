@@ -85,6 +85,16 @@ class RWAEnv(OpticalNetworkEnv):
     """I don't know what actions_output does - why is it incremented here?"""
     """same for episode_actions"""
     def step(self, action: Sequence[int]):
+        """
+        steps 1-5 in Algorithm 1   (note: split into two parts to ensure tracking is still present)
+        for kpath in self.k_shortest_paths[self.service.source, self.service.destination]:  # for all kSPs between source and destination
+            for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
+                if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength):
+                    # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
+                    if get_path_capacity(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength) > self.service.bit_rate:
+                        self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
+
+        """
         path, wavelength = action[0], action[1]
         self.actions_output[path, wavelength] += 1
         self.episode_actions_output[path, wavelength] += 1
@@ -211,6 +221,11 @@ class RWAEnv(OpticalNetworkEnv):
     def observation(self):
         return {'topology': self.topology,
                 'service': self.service}
+    """
+    self.observation_space = spaces.Tuple(( spaces.Discrete(self.k_paths ),
+     spaces.Discrete(self.k_paths ), spaces.Discrete(self.num_spectrum_resources)))
+
+    """
 
     """
     need to modify provision path method to allow for multiple service IDs on one channel
@@ -312,7 +327,7 @@ def get_path_capacity(env: RWAEnv, path: Path) -> int:
 """
 this is what we need to do - loop first over the wavelengths and then get the agent to choose the path, after we check its availability
 we need to modify the tracking of the paths, i.e. is_path_free will become is_path_capacity_sufficient() ...
-this is equivalent to Robert's FF-kSP algo.
+this is equivalent to Robert's FF-SP algo. - needs another loop over the k paths to make it FF-kSP
 """
 def shortest_path_first_fit(env: RWAEnv) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
@@ -387,7 +402,30 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
             for wavelength in range(self.env.num_spectrum_resources):
                 if self.env.is_path_free(self.env.topology.graph['ksp'][self.env.service.source, self.env.service.destination][action], wavelength):  # if wavelength is found
                     return (action, wavelength)
-        return (self.env.k_paths, self.env.num_spectrum_resources)
+        return (self.env.k_paths, self.env.num_spectrum_resources)  # do this if the action is not one of the k paths
 
     def step(self, action):
         return self.env.step(self.action(action))
+
+# class FirstFitPathOnlyObservation(gym.ObservationWrapper):
+#
+#     def __init__(self, env: RWAEnv):
+#         super().__init__(env)
+#         self.observation_space = env.observation_space
+#
+#     def observation(self, obs):
+#         for wavelength in range(self.env.num_spectrum_resources):  # scan over wavelengths to find the first available
+#             viable_paths = []
+#             for path in range(self.k_paths):
+#                 if self.env.is_path_free(self.env.topology.graph['ksp'][self.env.service.source, self.env.service.destination][path], wavelength):
+#                     viable_paths.append(path) # save the paths that are viable (will modify this later to be capacity-based)
+#             if len(viable_paths) > 0: # if at least one k shortest path for this wavelength
+#                 return {'viablekSPs': self.topology.graph['ksp'][self.env.service.source, self.env.service.destination][viable_paths],
+#                         'service': self.service}
+#         if len(viable_paths) == 0: # if none of the wavelengths actually fit
+#             raise ValueError('Ran out of wavelengths!')  # need to work out how to handle this - it should block...
+
+
+# def observation(self):
+#     return {'topology': self.topology,
+#             'service': self.service}
