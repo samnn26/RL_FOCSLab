@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import GN_model
-from optical_rl_gym.utils import Service, Path, Channel
+from optical_rl_gym.utils import Service, Path, LightPath
 from .optical_network_env import OpticalNetworkEnv
 
 
@@ -79,7 +79,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         self._new_service = False
         if reset:
             self.reset(only_counters=False)
-
+        self.initialise_lightpath_capacities()
     """
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
     The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
@@ -93,9 +93,11 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         c = p.channels[channel_id]
         new_capacity = c.available_capacity - capacity_allocated
         c.available_capacity = new_capacity
+        #change this to update all the link seperately
 
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
         return 100 #remove this after testing the method
+        #change this to derive avaialble ligth path capcity from available links
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
         return c.available_capacity
@@ -104,14 +106,14 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         # access through the channels of k shortest paths and initialise to max capacity
         nch = 101  # call a method in gn model to retriev this
         channel_capacities = None
-        for src, dst in enumerate(self.topology.nodes()):
-            for src, dst in enumerate(self.topology.nodes()):
-                if src < dst:
+        for idn1, n1 in enumerate(self.topology.nodes()):
+            for idn2, n2 in enumerate(self.topology.nodes()):
+                if idn1 < idn2:
                     for path in range(self.k_paths):
-                        p = self.k_shortest_paths[src, dst][path]
+                        p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
                             capacity = GN_model.calculate_lightpath_capacity(ch, p.length)
-                            c = Channel(ch, capacity)
+                            c = LightPath(ch, capacity)
                             p.channels[ch] = c
 
     def step(self, action: Sequence[int]):

@@ -6,7 +6,7 @@ import GN_model
 
 class Path:
 
-    def __init__(self, path_id, node_list, length,best_modulation=None,channels=None):
+    def __init__(self, path_id, node_list, length,best_modulation=None,channels=dict()):
         self.path_id = path_id
         self.node_list = node_list
         self.length = length
@@ -35,6 +35,9 @@ class Service:
         self.route = None
         self.initial_slot = None
         self.accepted = False
+
+    def foobar(self):
+        return "foobar"
 
     def __str__(self):
         msg = '{'
@@ -100,7 +103,7 @@ def evaluate_heuristic(env, heuristic, n_eval_episodes=10,
         return episode_rewards, episode_lengths
     return mean_reward, std_reward
 
-class Channel:
+class LightPath:
     def __init__(self, channel_id, available_capacity):
         self.channel_id = channel_id
         self.available_capacity = available_capacity
