@@ -32,11 +32,12 @@ def get_topology(file_name, topology_name, k_paths=5):
         for idn2, n2 in enumerate(topology.nodes()):
             if idn1 < idn2:
                 paths = get_k_shortest_paths(topology, n1, n2, k_paths)
-                lengths = [get_path_weight(topology, path) for path in paths]
+                weights = [get_path_weight(topology, path) for path in paths]
+                lengths = [get_path_weight(topology, path, weight='length') for path in paths]
                 objs = []
-                for path, length in zip(paths, lengths):
-                    objs.append(Path(idp, path, length))
-                    print(idp, length, path)
+                for path, weight,length in zip(paths, weights, lengths):
+                    objs.append(Path(idp, path,weight,length))
+                    print(idp, weight,length, path)
                     idp += 1
                 k_shortest_paths[n1, n2] = objs
                 k_shortest_paths[n2, n1] = objs
@@ -52,7 +53,7 @@ def get_topology(file_name, topology_name, k_paths=5):
 
 k_paths = 5
 
-topology = get_topology('./topologies/nsfnet_chen.txt', 'NSFNET', k_paths=k_paths)
+topology = get_topology('./topologies/nsfnet_chen.txt', 'NFSNET', k_paths=k_paths)
 
 with open(f'./topologies/nsfnet_chen_{k_paths}-paths.h5', 'wb') as f:
     pickle.dump(topology, f)

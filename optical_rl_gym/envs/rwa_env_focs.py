@@ -88,19 +88,21 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     """same for episode_actions"""
 
     def update_available_lightpath_capacity(self, source, dest, path_id, channel_id, capacity_allocated):
-        return 0 #remove this after testing the method
+
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
-        new_capacity = c.available_capacity - capacity_allocated
+        new_capacity = c.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
         c.available_capacity = new_capacity
-        #change this to update all the link seperately
+        print("available capacity updated for wavelength ", channel_id, " new capacity ", c.available_capacity, " bps")
+
 
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
-        return 100 #remove this after testing the method
-        #change this to derive avaialble ligth path capcity from available links
+
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
-        return c.available_capacity
+        c_bps = c.available_capacity*1e12
+        print("available capacity for wavelength ", channel_id, " is ", c_bps, "bps")
+        return c_bps #converted to bps(from Tbps)
 
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
@@ -112,7 +114,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                     for path in range(self.k_paths):
                         p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
-                            capacity = GN_model.calculate_lightpath_capacity(ch, p.length)
+                            capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             c = LightPath(ch, capacity)
                             p.channels[ch] = c
 
