@@ -41,6 +41,12 @@ rnd_path_action_probability = np.sum(env_rnd.actions_output, axis=1) / np.sum(en
 rnd_wavelength_action_probability = np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output)
 print('Path action probability:', np.sum(env_rnd.actions_output, axis=1) / np.sum(env_rnd.actions_output))
 print('Wavelength action probability:', np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output))
+
+num_lps_reused = env_rnd.num_lightpaths_reused
+
+print('Total number of services:', env_rnd.services_processed)
+print('Total number of accepted services:', env_rnd.services_accepted)
+print('Number of services on existing lightpaths:', num_lps_reused)
 # breakpoint()
 # # creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically
 # env_rnd_ff = PathOnlyFirstFitAction(gym.make('RWAFOCS-v0', **env_args))
