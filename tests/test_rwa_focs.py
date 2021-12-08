@@ -10,12 +10,12 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-load = 450
+load = 10
 logging.getLogger('rwaenv').setLevel(logging.INFO)
 
 seed = 20
 episodes = 10
-episode_length = 1000
+episode_length = 100
 
 monitor_files = []
 policies = []
@@ -46,7 +46,7 @@ num_lps_reused = env_rnd.num_lightpaths_reused
 
 print('Total number of services:', env_rnd.services_processed)
 print('Total number of accepted services:', env_rnd.services_accepted)
-print('Blocking probability:', env_rnd.services_accepted/env_rnd.services_processed)
+print('Blocking probability:', 1 - env_rnd.services_accepted/env_rnd.services_processed)
 print('Number of services on existing lightpaths:', num_lps_reused)
 # breakpoint()
 # # creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically

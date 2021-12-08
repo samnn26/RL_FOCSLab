@@ -20,7 +20,7 @@ class Path:
 class Service:
 
     def __init__(self, service_id, source, source_id, destination=None, destination_id=None, arrival_time=None,
-                 holding_time=None, bit_rate=5e9, best_modulation=None, service_class=None, number_slots=None):
+                 holding_time=None, bit_rate=10e9, best_modulation=None, service_class=None, number_slots=None):
         self.service_id = service_id
         self.arrival_time = arrival_time
         self.holding_time = holding_time

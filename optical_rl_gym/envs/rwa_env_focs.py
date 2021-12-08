@@ -273,7 +273,8 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     def _next_service(self):
         if self._new_service:
             return
-        at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
+        #at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
+        at = self.current_time + self.mean_service_inter_arrival_time
         self.current_time = at
 
         #ht = self.rng.expovariate(1 / self.mean_service_holding_time)
