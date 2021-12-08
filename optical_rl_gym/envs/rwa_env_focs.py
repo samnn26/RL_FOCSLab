@@ -103,7 +103,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         p = self.k_shortest_paths[source, dest][path_id]
         c = p.channels[channel_id]
         c_bps = c.available_capacity*1e12
-        print("available capacity for wavelength ", channel_id, " is ", c_bps, "bps")
+        print("available capacity for wavelength ", channel_id, " is ", c_bps, "Tbps")
         return c_bps #converted to bps(from Tbps)
 
     def initialise_lightpath_capacities(self):
