@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import GN_model
 from optical_rl_gym.utils import Service, Path, LightPath
 from .optical_network_env import OpticalNetworkEnv
-
+import pdb
 
 
 class RWAEnvFOCS(OpticalNetworkEnv):
@@ -138,8 +138,9 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         self.services_accepted += 1
                         self.episode_services_accepted += 1
 
-                        self.actions_taken[path, wavelength] += 1
-                        self.episode_actions_taken[path, wavelength] += 1
+                        self.actions_taken[kpath, wavelen] += 1
+                        
+                        self.episode_actions_taken[kpath, wavelen] += 1
                         self._add_release(self.service)
                         self.services_processed += 1
                         self.episode_services_processed += 1
@@ -461,7 +462,7 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
         super().__init__(env)
         self.action_space = gym.spaces.Discrete(self.env.k_paths + self.env.reject_action)
         self.observation_space = env.observation_space
-        
+
     """
     This method transforms an action that only selected the path, into an action that selects the path and the first-fit wavelength.
     """

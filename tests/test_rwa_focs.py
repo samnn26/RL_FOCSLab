@@ -23,10 +23,10 @@ policies = []
 # topology_name = 'gbn'
 # topology_name = 'nobel-us'
 # topology_name = 'germany50'
-with open(f'/Users/jnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+with open(f'/Users/joshnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
     topology = pickle.load(f)
 
-env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e100, episode_length=episode_length)
+env_args = dict(topology=topology, seed=10, allow_rejection=True, load=load, mean_service_holding_time=1e100, episode_length=episode_length)
 
 # creating an environment
 env_rnd = gym.make('RWAFOCS-v0', **env_args)
@@ -41,15 +41,15 @@ rnd_path_action_probability = np.sum(env_rnd.actions_output, axis=1) / np.sum(en
 rnd_wavelength_action_probability = np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output)
 print('Path action probability:', np.sum(env_rnd.actions_output, axis=1) / np.sum(env_rnd.actions_output))
 print('Wavelength action probability:', np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output))
-breakpoint()
-# creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically
-env_rnd_ff = PathOnlyFirstFitAction(gym.make('RWAFOCS-v0', **env_args))
-mean_reward_rnd, std_reward_rnd = evaluate_heuristic(env_rnd_ff, random_policy, n_eval_episodes=episodes)
-# env_rnd.render()  # uncomment to visualize a representation of the environment
-print('Rnd-FF:', mean_reward_rnd, std_reward_rnd)
-rnd_ff_path_action_probability = np.sum(env_rnd_ff.actions_output, axis=1) / np.sum(env_rnd_ff.actions_output)
-rnd_ff_wavelength_action_probability = np.sum(env_rnd_ff.actions_output, axis=0) / np.sum(env_rnd_ff.actions_output)
-breakpoint()
+# breakpoint()
+# # creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically
+# env_rnd_ff = PathOnlyFirstFitAction(gym.make('RWAFOCS-v0', **env_args))
+# mean_reward_rnd, std_reward_rnd = evaluate_heuristic(env_rnd_ff, random_policy, n_eval_episodes=episodes)
+# # env_rnd.render()  # uncomment to visualize a representation of the environment
+# print('Rnd-FF:', mean_reward_rnd, std_reward_rnd)
+# rnd_ff_path_action_probability = np.sum(env_rnd_ff.actions_output, axis=1) / np.sum(env_rnd_ff.actions_output)
+# rnd_ff_wavelength_action_probability = np.sum(env_rnd_ff.actions_output, axis=0) / np.sum(env_rnd_ff.actions_output)
+# breakpoint()
 # print('Path action probability:', np.sum(env_rnd.actions_output, axis=1) / np.sum(env_rnd.actions_output))
 # print('Wavelength action probability:', np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output))
 #
