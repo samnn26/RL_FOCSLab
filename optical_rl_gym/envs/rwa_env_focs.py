@@ -93,7 +93,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         ligthpath = p.lightpaths[channel_id]
         new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
         ligthpath.available_capacity = new_capacity
-        print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " bps")
+        print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
 
 
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
