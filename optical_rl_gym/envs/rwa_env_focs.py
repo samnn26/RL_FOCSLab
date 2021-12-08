@@ -318,6 +318,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             self.topology[path.node_list[i]][path.node_list[i + 1]]['services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
+        #breakpoint()
         self.topology.graph['running_services'].append(self.service.service_id)
         self.service.wavelength = wavelength
         self._update_network_stats()

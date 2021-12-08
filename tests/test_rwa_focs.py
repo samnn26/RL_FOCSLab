@@ -26,7 +26,7 @@ policies = []
 with open(f'/Users/joshnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
     topology = pickle.load(f)
 
-env_args = dict(topology=topology, seed=10, allow_rejection=True, load=load, mean_service_holding_time=1e100, episode_length=episode_length)
+env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e100, episode_length=episode_length)
 
 # creating an environment
 env_rnd = gym.make('RWAFOCS-v0', **env_args)
@@ -46,6 +46,7 @@ num_lps_reused = env_rnd.num_lightpaths_reused
 
 print('Total number of services:', env_rnd.services_processed)
 print('Total number of accepted services:', env_rnd.services_accepted)
+print('Blocking probability:', env_rnd.services_accepted/env_rnd.services_processed)
 print('Number of services on existing lightpaths:', num_lps_reused)
 # breakpoint()
 # # creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically
