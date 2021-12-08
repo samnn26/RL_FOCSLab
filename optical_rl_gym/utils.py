@@ -6,14 +6,14 @@ import GN_model
 
 class Path:
 
-    def __init__(self, path_id, node_list, length,best_modulation=None,channels=dict()):
+    def __init__(self, path_id, node_list, weight, length, best_modulation=None, lightpaths=dict()):
         self.path_id = path_id
         self.node_list = node_list
         self.length = length
         self.best_modulation = best_modulation
         self.hops = len(node_list) - 1
-        self.physical_capacity = GN_model.calculate_capacity(length)
-        self.channels = channels
+        self.lightpaths = lightpaths
+        self.weight = weight
 
 
 

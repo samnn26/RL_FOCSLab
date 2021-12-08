@@ -50,8 +50,6 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
-        self.num_lightpaths_reused = 0  # track the number of reused lightpaths
-        self.lightpath_reused = False
         """
         don't understand why it is + 1 here, rather than self.reject_action. What is the difference?
         """
@@ -92,10 +90,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     def update_available_lightpath_capacity(self, source, dest, path_id, channel_id, capacity_allocated):
 
         p = self.k_shortest_paths[source, dest][path_id]
-        c = p.channels[channel_id]
-        new_capacity = c.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
-        c.available_capacity = new_capacity
-        print("available capacity updated for wavelength ", channel_id, " new capacity ", c.available_capacity, " bps")
+        ligthpath = p.lightpaths[channel_id]
+        new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
+        ligthpath.available_capacity = new_capacity
+        print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " bps")
 
 
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
@@ -117,20 +115,19 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
-                            c = LightPath(ch, capacity)
-                            p.channels[ch] = c
+                            ligthpath = LightPath(ch, capacity)
+                            p.lightpaths[ch] = ligthpath
 
     def step(self, action: Sequence[int]):
         """
         Steps 1-5 in Algorithm 1
         """
-        self.lightpath_reused = False  # to get around the checker in provision path (we still want to check for new lightpaths)
         for kpath in range(len(self.k_shortest_paths[self.service.source, self.service.destination])):  # for all kSPs between source and destination
             # breakpoint()
             for wavelen in range(self.num_spectrum_resources): # need to search each wavelength on each path
-                if not self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen):
+                if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen):
 
-    # if the path is occupied i.e. we have found an existing lightpath, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
+    # if the path is free, then check the capacity - for now we can assume this is first-fit (another agent could even choose this?)
     # source,dest,path_id,channel_id
                     if self.get_available_lightpath_capacity(self.service.source, self.service.destination, kpath, wavelen) > self.service.bit_rate:
 
@@ -140,11 +137,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         self.service.accepted = True
                         self.services_accepted += 1
                         self.episode_services_accepted += 1
-                        self.num_lightpaths_reused += 1
-                        self.lightpath_reused = True
-                        #self.actions_taken[kpath, wavelen] += 1
 
-                        #self.episode_actions_taken[kpath, wavelen] += 1
+                        self.actions_taken[kpath, wavelen] += 1
+
+                        self.episode_actions_taken[kpath, wavelen] += 1
                         self._add_release(self.service)
                         self.services_processed += 1
                         self.episode_services_processed += 1
@@ -306,7 +302,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 
     def _provision_path(self, path: Path, wavelength: int):
         # usage
-        if not not self.lightpath_reused and self.is_path_free(path, wavelength): # only check if we aren't reusing an existing LP
+        if not self.is_path_free(path, wavelength):
             raise ValueError("Wavelength {} of Path {} is not free".format(wavelength, path.node_list))
 
         for i in range(len(path.node_list) - 1):
