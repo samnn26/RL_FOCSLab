@@ -54,7 +54,7 @@ def calculate_lightpath_capacity(path_length, wavelength):
     eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
-    return capacity/nch
+    return capacity
 ############################## FUNCTIONS FOR CHECKING PHYSICAL LAYER IMPLEMENTATION ##############################
 
 def calculate_etaunif_nikita(n_span, gamma, l_eff, beta2, r_sym, alpha_ne, n_ch):
