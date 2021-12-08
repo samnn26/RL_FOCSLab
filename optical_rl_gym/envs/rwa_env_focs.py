@@ -99,10 +99,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
     def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
 
         p = self.k_shortest_paths[source, dest][path_id]
-        ligthpath = p.lightpaths[channel_id]
-        ligthpath_bps = ligthpath.available_capacity*1e12
-        print("available capacity for lightpath ", channel_id, " is ", ligthpath_bps, "bps")
-        return ligthpath_bps #converted to bps(from Tbps)
+        c = p.channels[channel_id]
+        c_bps = c.available_capacity*1e12
+        print("available capacity for wavelength ", channel_id, " is ", c_bps, "Tbps")
+        return c_bps #converted to bps(from Tbps)
 
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
@@ -139,7 +139,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         self.episode_services_accepted += 1
 
                         self.actions_taken[kpath, wavelen] += 1
-                        
+
                         self.episode_actions_taken[kpath, wavelen] += 1
                         self._add_release(self.service)
                         self.services_processed += 1
