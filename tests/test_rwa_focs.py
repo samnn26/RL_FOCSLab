@@ -10,12 +10,21 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-load = 10
+import tensorflow as tf
+import stable_baselines
+from stable_baselines.common.callbacks import BaseCallback
+from stable_baselines.results_plotter import load_results, ts2xy
+from stable_baselines import PPO2
+from stable_baselines.bench import Monitor
+from stable_baselines.common.policies import MlpPolicy
+from stable_baselines import results_plotter
+
+load = 1e10
 logging.getLogger('rwaenv').setLevel(logging.INFO)
 
 seed = 20
 episodes = 10
-episode_length = 100
+episode_length = 300
 
 monitor_files = []
 policies = []
@@ -26,28 +35,47 @@ policies = []
 with open(f'/Users/joshnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
     topology = pickle.load(f)
 
-env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e100, episode_length=episode_length)
+env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e10, episode_length=episode_length)
 
 # creating an environment
 env_rnd = gym.make('RWAFOCS-v0', **env_args)
-
-
+# env_focs = gym.make('RWAFOCS-v0', **env_args)
 
 # evaluating the environment that acts completely random both for path and wavelength
 mean_reward_rnd, std_reward_rnd = evaluate_heuristic(env_rnd, random_policy, n_eval_episodes=episodes)
 # env_rnd.render()  # uncomment to visualize a representation of the environment
 print('Rnd:', mean_reward_rnd, std_reward_rnd)
+
+# # here goes the arguments of the policy network to be used
+# policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
+#                    act_fun=tf.nn.elu) # we use the elu activation function
+#
+# agent = PPO2(MlpPolicy, env_focs, verbose=0, tensorboard_log="./tb/PPO-RWAEnvFOCS-v0/",
+#  policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+#
+# a = agent.learn(total_timesteps=1000, callback=callback)
+# results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWAEnvFOCS PPO")
+
+
 rnd_path_action_probability = np.sum(env_rnd.actions_output, axis=1) / np.sum(env_rnd.actions_output)
 rnd_wavelength_action_probability = np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output)
 print('Path action probability:', np.sum(env_rnd.actions_output, axis=1) / np.sum(env_rnd.actions_output))
 print('Wavelength action probability:', np.sum(env_rnd.actions_output, axis=0) / np.sum(env_rnd.actions_output))
 
 num_lps_reused = env_rnd.num_lightpaths_reused
-
+print('Load (Erlangs):', load)
+print('Service bit rate (Gb/s):', env_rnd.service.bit_rate/1e9)
 print('Total number of services:', env_rnd.services_processed)
 print('Total number of accepted services:', env_rnd.services_accepted)
 print('Blocking probability:', 1 - env_rnd.services_accepted/env_rnd.services_processed)
 print('Number of services on existing lightpaths:', num_lps_reused)
+print('Number of services released:', env_rnd.num_lightpaths_released)
+
+
+
+
+
+
 # breakpoint()
 # # creating an envionrment that only needs the path selection, then selects the first-fit wavelength automatically
 # env_rnd_ff = PathOnlyFirstFitAction(gym.make('RWAFOCS-v0', **env_args))

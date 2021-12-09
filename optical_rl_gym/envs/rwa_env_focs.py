@@ -52,6 +52,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.num_lightpaths_reused = 0
         self.lightpath_reused = False
+        self.num_lightpaths_released = 0  # for debugging load problem
         """
         don't understand why it is + 1 here, rather than self.reject_action. What is the difference?
         """
@@ -326,6 +327,8 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         self.service.route = path
 
     def _release_path(self, service: Service):
+        # print("Entered _release_path")
+        self.num_lightpaths_released += 1
         for i in range(len(service.route.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] = 1
             self.spectrum_wavelengths_allocation[self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] = -1
@@ -338,7 +341,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             self.topology.graph['running_services'].remove(service.service_id)
         except:
             self.logger.warning('error')
-
+        #breakpoint()
     def _update_network_stats(self):
         """
         Implement here any network-wide statistics
