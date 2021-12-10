@@ -296,6 +296,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         self._new_service = True
 
     def observation(self):
+        # breakpoint()
         return {'topology': self.topology,
                 'service': self.service}
     """
