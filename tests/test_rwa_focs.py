@@ -25,7 +25,7 @@ logging.getLogger('rwaenv').setLevel(logging.INFO)
 
 seed = 20
 episodes = 10
-episode_length = 300
+episode_length = 100
 
 monitor_files = []
 policies = []
@@ -36,7 +36,7 @@ policies = []
 with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
-env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e10, episode_length=episode_length)
+env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e2, episode_length=episode_length)
 
 # creating an environment
 env_rnd = gym.make('RWAFOCS-v0', **env_args)

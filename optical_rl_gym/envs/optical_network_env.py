@@ -14,7 +14,7 @@ class OpticalNetworkEnv(gym.Env):
 
 
     def __init__(self, topology=None, episode_length=1000, load=10, mean_service_holding_time=10800.0,
-                 num_spectrum_resources=80, allow_rejection=False,
+                 num_spectrum_resources=100, allow_rejection=False,
                  node_request_probabilities=None, seed=None, k_paths=5):
         """
         Initalises the optical network env

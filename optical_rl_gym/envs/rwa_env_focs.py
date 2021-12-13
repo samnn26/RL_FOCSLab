@@ -22,7 +22,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                  episode_length=1000,
                  load=10,
                  mean_service_holding_time=1e100,
-                 num_spectrum_resources=80,
+                 num_spectrum_resources=100,
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
@@ -322,7 +322,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             self.topology[path.node_list[i]][path.node_list[i + 1]]['services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
-        #breakpoint()
+        # breakpoint()
         self.topology.graph['running_services'].append(self.service.service_id)
         self.service.wavelength = wavelength
         self._update_network_stats()
@@ -343,7 +343,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             self.topology.graph['running_services'].remove(service.service_id)
         except:
             self.logger.warning('error')
-        #breakpoint()
+
     def _update_network_stats(self):
         """
         Implement here any network-wide statistics
