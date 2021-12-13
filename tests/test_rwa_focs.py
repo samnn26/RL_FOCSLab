@@ -33,7 +33,7 @@ policies = []
 # topology_name = 'gbn'
 # topology_name = 'nobel-us'
 # topology_name = 'germany50'
-with open(f'/Users/joshnevin/RL_FOCSLab/examples/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
 env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e10, episode_length=episode_length)

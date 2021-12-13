@@ -28,9 +28,12 @@ def get_topology(file_name, topology_name, k_paths=5):
     else:
         raise ValueError('Supplied topology is unknown')
     idp = 0
+    # edge_counter = 0
     for idn1, n1 in enumerate(topology.nodes()):
         for idn2, n2 in enumerate(topology.nodes()):
-            if idn1 < idn2:
+            # print(n1)
+            # print(n2)
+            if idn1 != idn2:
                 paths = get_k_shortest_paths(topology, n1, n2, k_paths)
                 weights = [get_path_weight(topology, path) for path in paths]
                 lengths = [get_path_weight(topology, path, weight='length') for path in paths]
@@ -40,7 +43,8 @@ def get_topology(file_name, topology_name, k_paths=5):
                     print(idp, weight,length, path)
                     idp += 1
                 k_shortest_paths[n1, n2] = objs
-                k_shortest_paths[n2, n1] = objs
+                # edge_counter += 1
+                # k_shortest_paths[n2, n1] = objs
     topology.graph['name'] = topology_name
     topology.graph['ksp'] = k_shortest_paths
     topology.graph['k_paths'] = k_paths
@@ -48,14 +52,15 @@ def get_topology(file_name, topology_name, k_paths=5):
     for idx, node in enumerate(topology.nodes()):
         topology.graph['node_indices'].append(node)
         topology.nodes[node]['index'] = idx
+    # print(edge_counter)
     return topology
 
 
 k_paths = 5
 
-topology = get_topology('./topologies/nsfnet_chen.txt', 'NFSNET', k_paths=k_paths)
+topology = get_topology('./topologies/nsfnet_chen_directional.txt', 'NFSNET', k_paths=k_paths)
 
-with open(f'./topologies/nsfnet_chen_{k_paths}-paths.h5', 'wb') as f:
+with open(f'./topologies/nsfnet_chen_{k_paths}-paths_directional.h5', 'wb') as f:
     pickle.dump(topology, f)
-
+# breakpoint()
 print('done for', topology)

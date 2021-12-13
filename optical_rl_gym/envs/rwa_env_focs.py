@@ -125,6 +125,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         """
         Steps 1-5 in Algorithm 1
         """
+        # breakpoint()
         self.lightpath_reused = False
         for kpath in range(len(self.k_shortest_paths[self.service.source, self.service.destination])):  # for all kSPs between source and destination
             # breakpoint()
@@ -384,6 +385,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
             if self.topology.graph['available_wavelengths'][
                       self.topology[path.node_list[i]][path.node_list[i + 1]]['index'],
                       wavelength] == 0:
+                # breakpoint()
                 return False  # if not available, return False
         return True
 
