@@ -62,7 +62,7 @@ def get_k_shortest_paths(G, source, target, k, weight=None):
     Method from https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.simple_paths.shortest_simple_paths.html#networkx.algorithms.simple_paths.shortest_simple_paths
     """
     return list(islice(nx.shortest_simple_paths(G, source, target, weight=weight), k))
-
+    
 
 def get_path_weight(graph, path, weight='length'):
     return np.sum([graph[path[i]][path[i + 1]][weight] for i in range(len(path) - 1)])

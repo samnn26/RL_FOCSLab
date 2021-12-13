@@ -70,7 +70,8 @@ def read_sndlib_topology(file):
 
 
 def read_txt_file(file):
-    graph = nx.Graph()
+    # graph = nx.Graph()
+    graph = nx.DiGraph()
     num_nodes = 0
     num_links = 0
     id_link = 0
@@ -84,11 +85,10 @@ def read_txt_file(file):
                     graph.add_node(str(id), name=str(id))
             elif idx == 1:
                 num_links = int(line)
+
             elif len(line) > 1:
                 info = line.replace('\n', '').split(' ')
                 graph.add_edge(info[0], info[1], id=id_link, index=id_link, weight=1, length=int(info[2]))
                 id_link += 1
-
+    # breakpoint()
     return graph
-
-
