@@ -71,9 +71,11 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 # loading the topology binary file containing the graph and the k-shortest paths
 # if you want to generate your own binary topology file, check examples/create_topology_rmsa.py
-topology_name = 'nsfnet_chen'
-k_paths = 5
-with open(f'topologies/{topology_name}_{k_paths}-paths.h5', 'rb') as f:
+# topology_name = 'nsfnet_chen'
+# k_paths = 5
+# with open(f'topologies/{topology_name}_{k_paths}-paths.h5', 'rb') as f:
+#     topology = pickle.load(f)
+with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
@@ -82,14 +84,13 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
 # mean_service_holding_time=7.5,
-env_args = dict(topology=topology, seed=10,
+env_args = dict(topology=topology, seed=10, load = 1e10,
                 allow_rejection=False, # the agent cannot proactively reject a request
-                #j=1, # consider only the first suitable spectrum block for the spectrum assignment
                 mean_service_holding_time=7.5, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities)
-
+# breakpoint()
 # Create log dir
-log_dir = "./tmp/deeprmsa-ppo/"
+log_dir = "./tmp/RWAFOCS-ppo/"
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=100, log_dir=log_dir)
 
