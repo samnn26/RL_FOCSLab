@@ -310,8 +310,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 
     def observation(self):
         # breakpoint()
-        return {'topology': self.topology,
-                'service': self.service}
+        return (self.service.bit_rate,self.service.source_id,self.service.destination_id)
     """
     self.observation_space = spaces.Tuple(( spaces.Discrete(self.k_paths ),
      spaces.Discrete(self.k_paths ), spaces.Discrete(self.num_spectrum_resources)))
