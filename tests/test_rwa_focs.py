@@ -23,9 +23,9 @@ import matplotlib.pyplot as plt
 load = 1e10
 logging.getLogger('rwaenv').setLevel(logging.INFO)
 
-seed = 20
+seed = 10
 episodes = 10
-episode_length = 100
+episode_length = 300
 
 monitor_files = []
 policies = []
@@ -36,7 +36,7 @@ policies = []
 with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
-env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e2, episode_length=episode_length)
+env_args = dict(topology=topology, seed=10, allow_rejection=False, load=load, mean_service_holding_time=1e10, episode_length=episode_length)
 
 # creating an environment
 env_rnd = gym.make('RWAFOCS-v0', **env_args)
@@ -71,7 +71,8 @@ print('Total number of accepted services:', env_rnd.services_accepted)
 print('Blocking probability:', 1 - env_rnd.services_accepted/env_rnd.services_processed)
 print('Number of services on existing lightpaths:', num_lps_reused)
 print('Number of services released:', env_rnd.num_lightpaths_released)
-
+print('Number of transmitters on each node:', env_rnd.num_transmitters)
+print('Number of receivers on each node:', env_rnd.num_receivers)
 
 
 

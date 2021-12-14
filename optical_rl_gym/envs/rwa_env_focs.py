@@ -43,7 +43,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         """
         self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources),
                                                  fill_value=-1, dtype=np.int)
-
+        self.num_transmitters = np.zeros(self.topology.number_of_nodes(),)
+        self.num_receivers = np.zeros(self.topology.number_of_nodes(),)
+        self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
+        self.episode_num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.reject_action = 1 if allow_rejection else 0
 
         self.actions_output = np.zeros((self.k_paths + self.reject_action,
@@ -141,6 +144,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                         # if there is enough capacity - provision path
                         self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][kpath], wavelen)
                         # need to exit this loop once request is provisioned
+
                         self.service.accepted = True
                         self.services_accepted += 1
                         self.episode_services_accepted += 1
@@ -179,6 +183,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
               path, wavelength) > self.service.bit_rate:  # Also check the capacity of the new lightpath
 
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
+                self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
+                self.num_receivers[int(self.service.destination)-1] += 1
+                self.episode_num_transmitters[int(self.service.source)-1] += 1
+                self.episode_num_receivers[int(self.service.destination)-1] += 1
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
@@ -221,6 +229,8 @@ class RWAEnvFOCS(OpticalNetworkEnv):
                                         self.num_spectrum_resources + 1), dtype=int)
         self.episode_services_processed = 0
         self.episode_services_accepted = 0
+        self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes())
+        self.episode_num_receivers = np.zeros(self.topology.number_of_nodes())
         if only_counters:
             return self.observation()
 
