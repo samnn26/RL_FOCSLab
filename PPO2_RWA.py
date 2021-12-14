@@ -20,7 +20,8 @@ from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines import results_plotter
-stable_baselines.__version__ # printing out stable_baselines version used
+from stable_baselines.common.evaluation import evaluate_policy
+#stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
@@ -83,8 +84,10 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
+load = 1e10
+
 # mean_service_holding_time=7.5,
-env_args = dict(topology=topology, seed=10, load = 1e10,
+env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=7.5, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities)
@@ -109,3 +112,34 @@ agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", poli
 
 a = agent.learn(total_timesteps=4000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+
+
+mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
+
+
+
+# # Enjoy trained agent
+# obs = env.reset()
+# for i in range(1):
+#     action, _states = a.predict(obs)
+#     obs, rewards, dones, info = env.step(action)
+#     env.render()
+
+
+# print("Whole training process statistics:")
+# rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
+# rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
+# print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
+# print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
+#
+# num_lps_reused = env.num_lightpaths_reused
+# print('Load (Erlangs):', load)
+# print('Service bit rate (Gb/s):', env.service.bit_rate/1e9)
+# print('Total number of services:', env.services_processed)
+# print('Total number of accepted services:', env.services_accepted)
+# print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
+# print('Number of services on existing lightpaths:', num_lps_reused)
+# print('Number of services released:', env.num_lightpaths_released)
+# print('Number of transmitters on each node:', env.num_transmitters)
+# print('Number of receivers on each node:', env.num_receivers)
+# breakpoint()
