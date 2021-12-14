@@ -75,7 +75,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 # k_paths = 5
 # with open(f'topologies/{topology_name}_{k_paths}-paths.h5', 'rb') as f:
 #     topology = pickle.load(f)
-with open(f'topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
@@ -107,5 +107,5 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=40000, callback=callback)
+a = agent.learn(total_timesteps=4000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
