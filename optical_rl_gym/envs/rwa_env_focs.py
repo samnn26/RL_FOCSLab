@@ -173,7 +173,10 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         self.actions_output[path, wavelength] += 1
         self.episode_actions_output[path, wavelength] += 1
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
-            if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength):
+            if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
+             wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
+              path, wavelength) > self.service.bit_rate:  # Also check the capacity of the new lightpath
+
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
                 self.service.accepted = True
                 self.services_accepted += 1
