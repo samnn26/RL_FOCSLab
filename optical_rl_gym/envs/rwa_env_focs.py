@@ -72,7 +72,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         Again I don't understand the 10 here - what are the 10 things in the space here?
         """
         nodes = self.topology.number_of_nodes()
-        bitrate = 25e9 # test
+        bitrate = 25 # test
         self.observation_space= gym.spaces.MultiDiscrete((bitrate,nodes,nodes))
         self.action_space.seed(self.rand_seed)
         self.observation_space.seed(self.rand_seed)
@@ -310,7 +310,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 
     def observation(self):
         # breakpoint()
-        return (self.service.bit_rate,self.service.source_id,self.service.destination_id)
+        return [self.service.bit_rate,self.service.source_id,self.service.destination_id]
     """
     self.observation_space = spaces.Tuple(( spaces.Discrete(self.k_paths ),
      spaces.Discrete(self.k_paths ), spaces.Discrete(self.num_spectrum_resources)))

@@ -75,7 +75,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 # k_paths = 5
 # with open(f'topologies/{topology_name}_{k_paths}-paths.h5', 'rb') as f:
 #     topology = pickle.load(f)
-with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+with open(f'topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
 
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
@@ -98,7 +98,7 @@ callback = SaveOnBestTrainingRewardCallback(check_freq=100, log_dir=log_dir)
 env = gym.make('RWAFOCS-v0', **env_args)
 # logs will be saved in log_dir/training.monitor.csv
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
-env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','episode_bit_rate_blocking_rate'))
+env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
 
 # here goes the arguments of the policy network to be used
