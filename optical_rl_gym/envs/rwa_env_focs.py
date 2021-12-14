@@ -71,10 +71,9 @@ class RWAEnvFOCS(OpticalNetworkEnv):
         """
         Again I don't understand the 10 here - what are the 10 things in the space here?
         """
-        self.observation_space = gym.spaces.Dict(
-            {'topology': gym.spaces.Discrete(10),
-             'current_service': gym.spaces.Discrete(10)}
-        )
+        nodes = self.topology.number_of_nodes()
+        bitrate = 25e9 # test
+        self.observation_space= gym.spaces.MultiDiscrete((bitrate,nodes,nodes))
         self.action_space.seed(self.rand_seed)
         self.observation_space.seed(self.rand_seed)
 
