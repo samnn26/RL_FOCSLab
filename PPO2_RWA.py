@@ -95,7 +95,7 @@ env_args = dict(topology=topology, seed=10, load = load,
 # Create log dir
 log_dir = "./tmp/RWAFOCS-ppo/"
 os.makedirs(log_dir, exist_ok=True)
-callback = SaveOnBestTrainingRewardCallback(check_freq=100, log_dir=log_dir)
+callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
 #env = gym.make('DeepRMSA-v0', **env_args)
 env = gym.make('RWAFOCS-v0', **env_args)
@@ -110,13 +110,11 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=4000, callback=callback)
+a = agent.learn(total_timesteps=2000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
 
 
 mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
-
-
 
 # # Enjoy trained agent
 # obs = env.reset()
@@ -126,20 +124,20 @@ mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
 #     env.render()
 
 
-# print("Whole training process statistics:")
-# rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
-# rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
-# print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
-# print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
-#
-# num_lps_reused = env.num_lightpaths_reused
-# print('Load (Erlangs):', load)
-# print('Service bit rate (Gb/s):', env.service.bit_rate/1e9)
-# print('Total number of services:', env.services_processed)
-# print('Total number of accepted services:', env.services_accepted)
-# print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
-# print('Number of services on existing lightpaths:', num_lps_reused)
-# print('Number of services released:', env.num_lightpaths_released)
-# print('Number of transmitters on each node:', env.num_transmitters)
-# print('Number of receivers on each node:', env.num_receivers)
+print("Whole training process statistics:")
+rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
+rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
+print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
+print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
+
+num_lps_reused = env.num_lightpaths_reused
+print('Load (Erlangs):', load)
+print('Service bit rate (Gb/s):', env.service.bit_rate/1e9)
+print('Total number of services:', env.services_processed)
+print('Total number of accepted services:', env.services_accepted)
+print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
+print('Number of services on existing lightpaths:', num_lps_reused)
+print('Number of services released:', env.num_lightpaths_released)
+print('Number of transmitters on each node:', env.num_transmitters)
+print('Number of receivers on each node:', env.num_receivers)
 # breakpoint()
