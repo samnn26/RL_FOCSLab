@@ -72,12 +72,11 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 # loading the topology binary file containing the graph and the k-shortest paths
 # if you want to generate your own binary topology file, check examples/create_topology_rmsa.py
-# topology_name = 'nsfnet_chen'
-# k_paths = 5
-# with open(f'topologies/{topology_name}_{k_paths}-paths.h5', 'rb') as f:
-#     topology = pickle.load(f)
-with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+current_directory = os.getcwd()
+with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
+# with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+#     topology = pickle.load(f)
 
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
 node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
