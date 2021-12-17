@@ -98,7 +98,7 @@ os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
 #env = gym.make('DeepRMSA-v0', **env_args)
-env = gym.make('RWAFOCS-v0', **env_args)
+env = gym.make('RWAFOCS-v1', **env_args)
 # logs will be saved in log_dir/training.monitor.csv
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))

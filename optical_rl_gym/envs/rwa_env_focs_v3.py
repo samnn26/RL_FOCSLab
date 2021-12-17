@@ -11,8 +11,10 @@ from optical_rl_gym.utils import Service, Path, LightPath
 from .optical_network_env import OpticalNetworkEnv
 import pdb
 
-
-class RWAEnvFOCS(OpticalNetworkEnv):
+"""
+Model 3 - prior knowledge-integrated RL
+"""
+class RWAEnvFOCSV3(OpticalNetworkEnv):
 
     metadata = {
         'metrics': ['service_blocking_rate', 'episode_service_blocking_rate']
@@ -404,7 +406,7 @@ class RWAEnvFOCS(OpticalNetworkEnv):
 """
 not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
 """
-def get_path_capacity(env: RWAEnvFOCS, path: Path) -> int:
+def get_path_capacity(env: RWAEnvFOCSV3, path: Path) -> int:
     capacity = 0
     # checks all wavelengths to see which ones are available
     for wavelength in range(env.num_spectrum_resources):
@@ -424,7 +426,7 @@ this is what we need to do - loop first over the wavelengths and then get the ag
 we need to modify the tracking of the paths, i.e. is_path_free will become is_path_capacity_sufficient() ...
 this is equivalent to Robert's FF-SP algo. - needs another loop over the k paths to make it FF-kSP
 """
-def shortest_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
+def shortest_path_first_fit(env: RWAEnvFOCSV3) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
         if env.is_path_free(env.k_shortest_paths[env.service.source, env.service.destination][0], wavelength):
             return (0, wavelength)
@@ -434,7 +436,7 @@ def shortest_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
 """
 this is equivalent to kSP-FF algo in Robert's paper...
 """
-def shortest_available_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
+def shortest_available_path_first_fit(env: RWAEnvFOCSV3) -> Sequence[int]:
     best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
@@ -451,7 +453,7 @@ def shortest_available_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
 """
 this performs kSP-LF, i.e. it chooses the wavelength slot for a given path starting with the last slot and scanning backwards
 """
-def shortest_available_path_last_fit(env: RWAEnvFOCS) -> Sequence[int]:
+def shortest_available_path_last_fit(env: RWAEnvFOCSV3) -> Sequence[int]:
     best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
@@ -466,7 +468,7 @@ def shortest_available_path_last_fit(env: RWAEnvFOCS) -> Sequence[int]:
     return decision
 
 
-def least_loaded_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
+def least_loaded_path_first_fit(env: RWAEnvFOCSV3) -> Sequence[int]:
     best_load = np.finfo(0.0).min
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
@@ -484,7 +486,7 @@ def least_loaded_path_first_fit(env: RWAEnvFOCS) -> Sequence[int]:
 
 class PathOnlyFirstFitAction(gym.ActionWrapper):
 
-    def __init__(self, env: RWAEnvFOCS):
+    def __init__(self, env: RWAEnvFOCSV3):
         super().__init__(env)
         self.action_space = gym.spaces.Discrete(self.env.k_paths + self.env.reject_action)
         self.observation_space = env.observation_space
