@@ -83,7 +83,7 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-load = 10
+load = 1000
 
 # mean_service_holding_time=7.5,
 env_args = dict(topology=topology, seed=10, load = load,
@@ -134,7 +134,8 @@ print('Load (Erlangs):', load)
 print('Service bit rate (Gb/s):', env.service.bit_rate/1e9)
 print('Total number of services:', env.services_processed)
 print('Total number of accepted services:', env.services_accepted)
-print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
+#print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
+print('Service_blocking_rate', (env.services_processed - env.services_accepted) / env.services_processed)
 print('Number of services on existing lightpaths:', num_lps_reused)
 print('Number of services released:', env.num_lightpaths_released)
 print('Number of transmitters on each node across all episodes:', env.num_transmitters)

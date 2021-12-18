@@ -220,14 +220,18 @@ class OpticalNetworkEnv(gym.Env):
                                                             dtype=int)
 
         self.topology.graph["services"] = []
+        self.topology.graph["service_wavelengths"] = []
         self.topology.graph["running_services"] = []
+        self.topology.graph["running_service_wavelengths"] = []
 
         self.topology.graph["last_update"] = 0.
         for idx, lnk in enumerate(self.topology.edges()):
             self.topology[lnk[0]][lnk[1]]['utilization'] = 0.
             self.topology[lnk[0]][lnk[1]]['last_update'] = 0.
             self.topology[lnk[0]][lnk[1]]['services'] = []
+            self.topology[lnk[0]][lnk[1]]['service_wavelengths'] = []
             self.topology[lnk[0]][lnk[1]]['running_services'] = []
+            self.topology[lnk[0]][lnk[1]]['running_service_wavelengths'] = []
 
 
     def seed(self, seed=None):

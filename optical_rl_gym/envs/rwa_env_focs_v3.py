@@ -1,6 +1,6 @@
 from typing import Sequence
 import gym
-
+from collections import defaultdict
 import heapq
 import logging
 import numpy as np
@@ -11,9 +11,7 @@ from optical_rl_gym.utils import Service, Path, LightPath
 from .optical_network_env import OpticalNetworkEnv
 import pdb
 
-"""
-Model 1 - simple environment with only services in the observation space
-"""
+
 class RWAEnvFOCSV3(OpticalNetworkEnv):
 
     metadata = {
@@ -57,11 +55,10 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.num_lightpaths_reused = 0
-        self.lightpath_reused = False
-        self.num_lightpaths_released = 0  # for debugging load problem
-        """
-        don't understand why it is + 1 here, rather than self.reject_action. What is the difference?
-        """
+        self.episode_num_lightpaths_reused = 0
+
+        self.num_lightpaths_released = 0  # tracks every time we call _release_path
+
         self.actions_taken = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths + self.reject_action,
@@ -71,9 +68,7 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
         """
         self.action_space = gym.spaces.MultiDiscrete((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action))
-        """
-        Again I don't understand the 10 here - what are the 10 things in the space here?
-        """
+
         nodes = self.topology.number_of_nodes()
         number_of_bitrates = 100 # test
         self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes))
@@ -95,19 +90,19 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
     """I don't know what actions_output does - why is it incremented here?"""
     """same for episode_actions"""
 
-    def update_available_lightpath_capacity(self, source, dest, path_id, channel_id, capacity_allocated):
+    def update_available_lightpath_capacity(self, source, dest, path_ind, channel_ind, capacity_allocated):
 
-        p = self.k_shortest_paths[source, dest][path_id]
-        ligthpath = p.lightpaths[channel_id]
+        p = self.k_shortest_paths[source, dest][path_ind]
+        ligthpath = p.lightpaths[channel_ind]
         new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
         ligthpath.available_capacity = new_capacity
         #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
 
 
-    def get_available_lightpath_capacity(self, source, dest, path_id, channel_id):
+    def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
 
-        p = self.k_shortest_paths[source, dest][path_id]
-        c = p.lightpaths[channel_id]
+        p = self.k_shortest_paths[source, dest][path_ind]
+        c = p.lightpaths[channel_ind]
         c_bps = c.available_capacity*1e12
         #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
         return c_bps #converted to bps(from Tbps)
@@ -176,21 +171,36 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
         """
         Steps 6 onwards in Algorithm 1 - if no existing viable lightpath...
         """
+
         path, wavelength = action[0], action[1]
         self.actions_output[path, wavelength] += 1
         self.episode_actions_output[path, wavelength] += 1
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
-            if self.get_available_lightpath_capacity(self.service.source, self.service.destination,
-                path, wavelength) > self.service.bit_rate:  # Check the capacity of the new lightpath
-                if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength):
-                    self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
-                    self.num_receivers[int(self.service.destination)-1] += 1
-                    self.episode_num_transmitters[int(self.service.source)-1] += 1
-                    self.episode_num_receivers[int(self.service.destination)-1] += 1
-                else:
-                    self.num_lightpaths_reused += 1
+            if self.is_path_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
+            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
+            path, wavelength) > self.service.bit_rate:  # if path is free and has sufficient capacity
+                self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
+                self.num_receivers[int(self.service.destination)-1] += 1
+                self.episode_num_transmitters[int(self.service.source)-1] += 1
+                self.episode_num_receivers[int(self.service.destination)-1] += 1
+
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
 
+                self.service.accepted = True
+                self.services_accepted += 1
+                self.episode_services_accepted += 1
+
+                self.actions_taken[path, wavelength] += 1
+                self.episode_actions_taken[path, wavelength] += 1
+                self.update_available_lightpath_capacity(self.service.source, self.service.destination, path, wavelength,  self.service.bit_rate)
+                self._add_release(self.service)
+
+            elif self.does_lp_exist(self.k_shortest_paths[self.service.source, self.service.destination][path],
+            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
+            path, wavelength) > self.service.bit_rate:
+                self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
+                self.num_lightpaths_reused += 1
+                self.episode_num_lightpaths_reused += 1
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
@@ -206,7 +216,7 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
             self.service.accepted = False
 
         if not self.service.accepted:
-            self.actions_taken[self.k_paths, self.num_spectrum_resources] += 1
+            self.actions_taken[self.k_paths, self.num_spectrum_resources] += 1  # dont understand this...
 
         self.services_processed += 1
         self.episode_services_processed += 1
@@ -236,14 +246,15 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
         self.episode_services_accepted = 0
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes())
         self.episode_num_receivers = np.zeros(self.topology.number_of_nodes())
+        self.episode_num_lightpaths_reused = 0
         if only_counters:
             return self.observation()
 
         # if not only counters, the whole environment needs to be reset
         super().reset()
         """
-        Old version: vector that stores the state of each wavelength, 1=available, 0=used
-        New version: vector that stores the number of services on each wavelength.
+        Old version: vector that stores the state of each wavelength on each edge, 1=available, 0=used
+        New version: vector that stores the number of services on each wavelength on each edge.
         """
         #
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
@@ -345,14 +356,19 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
             #     self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength][ind] = self.service.service_id  # add service id to first slot
             # except:
             #     raise ValueError("Ran out of service id slots, increase this value")
+            # breakpoint()
             self.topology[path.node_list[i]][path.node_list[i + 1]]['services'].append(self.service.service_id)
+            self.topology[path.node_list[i]][path.node_list[i + 1]]['service_wavelengths'].append(wavelength)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
+            self.topology[path.node_list[i]][path.node_list[i + 1]]['running_service_wavelengths'].append(wavelength)
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
-        # breakpoint()
+
         self.topology.graph['running_services'].append(self.service.service_id)
+        self.topology.graph['running_service_wavelengths'].append(wavelength)
         self.service.wavelength = wavelength
         self._update_network_stats()
         self.service.route = path
+
 
     def _release_path(self, service: Service):
         # print("Entered _release_path")
@@ -361,12 +377,16 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
             self.topology.graph['available_wavelengths'][self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] -= 1
             # self.spectrum_wavelengths_allocation[self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] = -1
             try:
+                ind_edge = self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['running_services'].index(service.service_id)
                 self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['running_services'].remove(service.service_id)
+                del self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['running_service_wavelengths'][ind_edge]
             except:
                 self.logger.warning('error')
             self._update_link_stats(service.route.node_list[i], service.route.node_list[i + 1])
         try:
+            ind_top = self.topology.graph['running_services'].index(service.service_id)
             self.topology.graph['running_services'].remove(service.service_id)
+            del self.topology.graph['running_service_wavelengths'][ind_top]
         except:
             self.logger.warning('error')
 
@@ -419,6 +439,36 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
                 return True  # 0 means completely unoccupied
         return False
 
+    def does_lp_exist(self, path: Path, wavelength: int) -> bool:
+        # if wavelength is out of range, return false
+
+        if wavelength > self.num_spectrum_resources:
+            return False
+        path_service_ids = []
+        for i in range(len(path.node_list) - 1): # for each edge on the path, get the service ids that are running
+            path_service_ids =  path_service_ids + self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services']
+        # breakpoint()
+        id = self.check_if_val_occurs_n_times(path_service_ids, len(path.node_list) - 1)
+        # if a running service exists on all edges on the chosen wavelength
+        if id != -1 and self.topology.graph['running_service_wavelengths'][self.topology.graph['running_services'].index(id)] == wavelength:
+            return True
+        else:
+            return False
+
+    def check_if_val_occurs_n_times(self, lst, n):
+        # assumes values in list are all >= 0
+        # finds first instance of element occuring n times in the list
+        dic = defaultdict(int)
+        for i in lst:
+            dic[i]+= 1
+        flag = 0
+        # Finding from dictionary
+        for element in lst:
+            if element in dic.keys() and dic[element] == n:
+                return element
+        # if element not found.
+        if flag == 0:
+            return -1
 
 """
 not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
