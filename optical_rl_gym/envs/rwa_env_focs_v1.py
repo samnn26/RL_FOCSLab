@@ -90,14 +90,16 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
     """I don't know what actions_output does - why is it incremented here?"""
     """same for episode_actions"""
 
-    def update_available_lightpath_capacity(self, source, dest, path_ind, channel_ind, capacity_allocated):
 
-        p = self.k_shortest_paths[source, dest][path_ind]
-        ligthpath = p.lightpaths[channel_ind]
-        new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
+    def update_available_lightpath_capacity(self, path, channel_ind, capacity_allocated, provision):
+        # breakpoint()
+        ligthpath = path.lightpaths[channel_ind]
+        if provision:
+            new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
+        else:  # if we are releasing
+            new_capacity = ligthpath.available_capacity + capacity_allocated/1e12 # convert bps to Tbps
         ligthpath.available_capacity = new_capacity
         #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
-
 
     def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
 
@@ -192,7 +194,6 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
-                self.update_available_lightpath_capacity(self.service.source, self.service.destination, path, wavelength,  self.service.bit_rate)
                 self._add_release(self.service)
 
             elif self.does_lp_exist(self.k_shortest_paths[self.service.source, self.service.destination][path],
@@ -207,7 +208,6 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
-                self.update_available_lightpath_capacity(self.service.source, self.service.destination, path, wavelength,  self.service.bit_rate)
                 self._add_release(self.service)
 
             else:
@@ -362,7 +362,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_service_wavelengths'].append(wavelength)
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
-
+        self.update_available_lightpath_capacity(path, wavelength, self.service.bit_rate, True)
         self.topology.graph['running_services'].append(self.service.service_id)
         self.topology.graph['running_service_wavelengths'].append(wavelength)
         self.service.wavelength = wavelength
@@ -372,6 +372,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
     def _release_path(self, service: Service):
         # print("Entered _release_path")
+        # breakpoint()
         self.num_lightpaths_released += 1
         for i in range(len(service.route.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] -= 1
@@ -389,6 +390,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
             del self.topology.graph['running_service_wavelengths'][ind_top]
         except:
             self.logger.warning('error')
+        self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
 
     def _update_network_stats(self):
         """
