@@ -140,4 +140,6 @@ print('Number of services on existing lightpaths:', num_lps_reused)
 print('Number of services released:', env.num_lightpaths_released)
 print('Number of transmitters on each node across all episodes:', env.num_transmitters)
 print('Number of receivers on each node across all episodes:', env.num_receivers)
+
+# print('Final lightpath service allocation', env.lightpath_service_allocation)
 # breakpoint()
