@@ -192,6 +192,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
     def reset(self, only_counters=True):
         # resetting counters for the episode
+        self.initialise_lightpath_capacities()
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths + 1,
