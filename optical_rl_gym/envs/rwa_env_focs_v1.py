@@ -61,7 +61,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         self.episode_num_lightpaths_reused = 0
 
         self.num_lightpaths_released = 0  # tracks every time we call _release_path
-
+        self.episode_num_lightpaths_released = 0
         self.actions_taken = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths + self.reject_action,
@@ -95,7 +95,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
 
     def update_available_lightpath_capacity(self, path, channel_ind, capacity_allocated, provision):
-        # breakpoint()
+
         ligthpath = path.lightpaths[channel_ind]
         if provision:
             new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
@@ -139,7 +139,6 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
                 self.num_receivers[int(self.service.destination)-1] += 1
                 self.episode_num_transmitters[int(self.service.source)-1] += 1
                 self.episode_num_receivers[int(self.service.destination)-1] += 1
-
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
 
                 self.service.accepted = True
@@ -202,6 +201,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes())
         self.episode_num_receivers = np.zeros(self.topology.number_of_nodes())
         self.episode_num_lightpaths_reused = 0
+        self.episode_num_lightpaths_released = 0
         if only_counters:
             return self.observation()
 
@@ -223,6 +223,10 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.actions_taken = np.zeros((self.k_paths + 1,
                                         self.num_spectrum_resources + 1), dtype=int)
+        self.num_transmitters = np.zeros(self.topology.number_of_nodes())
+        self.num_receivers = np.zeros(self.topology.number_of_nodes())
+        self.num_lightpaths_reused = 0
+        self.num_lightpaths_released = 0
         self._new_service = False
         self._next_service()
         return self.observation()
@@ -283,7 +287,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         self._new_service = True
 
     def observation(self):
-        # breakpoint()
+
         return [self.service.bit_rate,self.service.source_id,self.service.destination_id]
     """
     self.observation_space = spaces.Tuple(( spaces.Discrete(self.k_paths ),
@@ -305,12 +309,13 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
             #     self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength][ind] = self.service.service_id  # add service id to first slot
             # except:
             #     raise ValueError("Ran out of service id slots, increase this value")
-            # breakpoint()
+
             self.topology[path.node_list[i]][path.node_list[i + 1]]['services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['service_wavelengths'].append(wavelength)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_service_wavelengths'].append(wavelength)
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
+
         self.update_available_lightpath_capacity(path, wavelength, self.service.bit_rate, True)
         self.topology.graph['running_services'].append(self.service.service_id)
         self.topology.graph['running_service_wavelengths'].append(wavelength)
@@ -321,7 +326,6 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
 
     def _release_path(self, service: Service):
 
-        # breakpoint()
         self.num_lightpaths_released += 1
         self.lightpath_service_allocation[service.route.path_id, service.wavelength] -= 1
         for i in range(len(service.route.node_list) - 1):
@@ -340,6 +344,10 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         except:
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
+        self.num_transmitters[int(service.source)-1] -= 1  
+        self.num_receivers[int(service.destination)-1] -= 1
+        self.episode_num_transmitters[int(service.source)-1] -= 1
+        self.episode_num_receivers[int(service.destination)-1] -= 1
 
     def _update_network_stats(self):
         """
@@ -360,7 +368,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         time_diff = self.current_time - self.topology[node1][node2]['last_update']
         if self.current_time > 0:
             last_util = self.topology[node1][node2]['utilization']
-            # breakpoint()
+
             # cur_util = (self.num_spectrum_resources - np.sum(
             #     self.topology.graph['available_wavelengths'][self.topology[node1][node2]['index'], :])) / \
             #            self.num_spectrum_resources
@@ -381,18 +389,17 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
          # if wavelength is out of range, return false
         if wavelength > self.num_spectrum_resources:
             return False
-
         # checks over all links if the wavelength is available
         for i in range(len(path.node_list) - 1):
             if self.topology.graph['available_wavelengths'][
                       self.topology[path.node_list[i]][path.node_list[i + 1]]['index'],
                       wavelength] != 0: # 0 means completely unoccupied
-                # breakpoint()
                 return False
         return True
 
 
     def does_lightpath_exist(self, path: Path, wavelength: int) -> bool:
+
         if self.lightpath_service_allocation[path.path_id, wavelength] != 0:
             return True
         else:
