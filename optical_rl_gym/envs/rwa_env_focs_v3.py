@@ -191,7 +191,11 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
 
     def reset(self, only_counters=True):
         # resetting counters for the episode
-        self.initialise_lightpath_capacities()
+        if only_counters:
+            print("true")
+        else:
+            print("false")
+
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths + 1,
@@ -207,6 +211,7 @@ class RWAEnvFOCSV3(OpticalNetworkEnv):
 
         # if not only counters, the whole environment needs to be reset
         super().reset()
+        self.initialise_lightpath_capacities()
         """
         Old version of available wavelengths: array that stores the state of each wavelength on each edge, 1=available, 0=used
         New version of available wavelengths: array that stores the number of services on each wavelength on each edge.
