@@ -83,7 +83,7 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-load = 1e10
+load = 1000
 
 # mean_service_holding_time=7.5,
 env_args = dict(topology=topology, seed=10, load = load,
@@ -109,13 +109,13 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=2000, callback=callback)
+a = agent.learn(total_timesteps=1000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
 
 
-mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
+#mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
 
-# # Enjoy trained agent
+# # Visualise trained agent
 # obs = env.reset()
 # for i in range(1):
 #     action, _states = a.predict(obs)
