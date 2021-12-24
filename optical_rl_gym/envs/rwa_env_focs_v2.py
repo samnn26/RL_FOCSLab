@@ -79,7 +79,10 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         number_of_capacities = 100
         max_bitrate = 100
         #self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes,number_of_capacities))
-        lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths * self.num_spectrum_resources)*number_of_capacities).tolist()
+        lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*2).tolist()
         self.observation_space= gym.spaces.MultiDiscrete((lst))
 
         #self.observation_space = gym.spaces.Box(np.array([0,0,0]), np.array([max_bitrate, nodes, nodes]))
@@ -156,6 +159,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
+
 
     def step(self, action: Sequence[int]):
 #p = self.k_shortest_paths[source, dest][path_ind]
@@ -324,12 +328,27 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                                arrival_time=at, holding_time=ht, number_slots=1)
         self._new_service = True
 
+
     def observation(self):
-        capacities = []
+        enough_capacity = [] # each of capacities, lp_free and lp_exist are 500 in size..
+        lp_free = []
+        lp_exist = []
         for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
-            for channels in range(self.num_spectrum_resources):
-                capacities.append(self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source, self.service.destination][path], channels))
-        return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + capacities
+            for channel in range(self.num_spectrum_resources):
+                p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+                if self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
+                    enough_capacity.append(1)
+                else:
+                    enough_capacity.append(0)
+                if self.is_lightpath_free(p, channel):
+                    lp_free.append(1)
+                else:
+                    lp_free.append(0)
+                if self.does_lightpath_exist(p, channel):
+                    lp_exist.append(1)
+                else:
+                    lp_exist.append(0)
+        return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + enough_capacity + lp_free + lp_exist
         # capacities = []
         # for path in range(self.k_paths):
         #     for channels in range(self.num_spectrum_resources):
@@ -437,7 +456,6 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     we want to call is_lightpath_free for each of the k-shortest paths on each wavelength in turn - only if none are free
     do we then move on to the next wavelength
     """
-
     def is_lightpath_free(self, path: Path, wavelength: int) -> bool:
          # if wavelength is out of range, return false
         if wavelength > self.num_spectrum_resources:
@@ -457,6 +475,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             return True
         else:
             return False
+
+
 
 """
 not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
