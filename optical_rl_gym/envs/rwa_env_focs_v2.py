@@ -537,7 +537,14 @@ def shortest_available_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
         if path.hops < best_hops:  # if path is shorter
             # checks all wavelengths
             for wavelength in range(env.num_spectrum_resources):
-                if env.is_lightpath_free(path, wavelength):  # if wavelength is found
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_hops = path.hops
+                    decision = (idp, wavelength)
+                    break
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
                     # stores decision and breaks the wavelength loop (first fit)
                     best_hops = path.hops
                     decision = (idp, wavelength)
