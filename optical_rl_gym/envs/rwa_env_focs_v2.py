@@ -44,6 +44,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+        self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
@@ -78,11 +79,13 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         number_of_bitrates = 100 # test
         number_of_utils = 100
         #self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes,number_of_capacities))
-        lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
-            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
-            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
-            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
+        if self.include_utilisation:
+            lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*4).tolist() + (np.ones(self.k_paths *
             self.num_spectrum_resources)*number_of_utils).tolist()
+        else:
+            lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
+                self.num_spectrum_resources)*4).tolist()
         self.observation_space= gym.spaces.MultiDiscrete((lst))
 
         #self.observation_space = gym.spaces.Box(np.array([0,0,0]), np.array([max_bitrate, nodes, nodes]))
@@ -331,31 +334,40 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
     def observation(self):
 
-        enough_capacity = [] # each of enough_capacity, lp_free and lp_exist are k_paths * num_spectrum_resources in size..
-        lp_free = []
-        lp_exist = []
-        lp_utilisation = []
-        for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
-            for channel in range(self.num_spectrum_resources):
-                p = self.k_shortest_paths[self.service.source, self.service.destination][path]
-                if self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
-                    enough_capacity.append(1)
-                else:
-                    enough_capacity.append(0)
-                if self.is_lightpath_free(p, channel):
-                    lp_free.append(1)
-                else:
-                    lp_free.append(0)
-                if self.does_lightpath_exist(p, channel):
-                    lp_exist.append(1)
-                else:
-                    lp_exist.append(0)
-                edge_utils = []
-                for i in range(len(p.node_list)-1):
-                    edge_utils.append(self.topology[p.node_list[i]][p.node_list[i+1]]['utilization'])
-                lp_utilisation.append(np.max(edge_utils))
+        if self.include_utilisation:
+            lp_status = []
+            lp_utilisation = []
+            for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
+                for channel in range(self.num_spectrum_resources):
+                    p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+                    if not self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
+                        lp_status.append(0)
+                    elif self.is_lightpath_free(p, channel):
+                        lp_status.append(1)
+                    elif self.does_lightpath_exist(p, channel):
+                        lp_status.append(2)
+                    else:
+                        lp_status.append(3)
+                    edge_utils = []
+                    for i in range(len(p.node_list)-1):
+                        edge_utils.append(self.topology[p.node_list[i]][p.node_list[i+1]]['utilization'])
+                    lp_utilisation.append(np.max(edge_utils))
 
-        return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + enough_capacity + lp_free + lp_exist + lp_utilisation
+            return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + lp_status + lp_utilisation
+        else:
+            lp_status = []
+            for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
+                for channel in range(self.num_spectrum_resources):
+                    p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+                    if not self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
+                        lp_status.append(0)
+                    elif self.is_lightpath_free(p, channel):
+                        lp_status.append(1)
+                    elif self.does_lightpath_exist(p, channel):
+                        lp_status.append(2)
+                    else:
+                        lp_status.append(3)
+            return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + lp_status
         # capacities = []
         # for path in range(self.k_paths):
         #     for channels in range(self.num_spectrum_resources):
