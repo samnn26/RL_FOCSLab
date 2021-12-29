@@ -102,9 +102,10 @@ env = gym.make('RWAFOCS-v2', **env_args)
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
-
+#net_arch = [3 + env.k_paths*env.num_spectrum_resources*4, 128, 128, 128, 128]
+net_arch = 2*[64] # this is the default used for MlpPolicy 
 # here goes the arguments of the policy network to be used
-policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
+policy_args = dict(net_arch=net_arch, # the neural network has five layers with 128 neurons each
                    act_fun=tf.nn.elu) # we use the elu activation function
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)

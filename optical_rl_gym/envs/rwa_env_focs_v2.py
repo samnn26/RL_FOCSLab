@@ -76,13 +76,13 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         nodes = self.topology.number_of_nodes()
         number_of_bitrates = 100 # test
-        number_of_capacities = 100
-        max_bitrate = 100
+        number_of_utils = 100
         #self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes,number_of_capacities))
         lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
             self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
             self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
-            self.num_spectrum_resources)*2).tolist()
+            self.num_spectrum_resources)*2).tolist() + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*number_of_utils).tolist()
         self.observation_space= gym.spaces.MultiDiscrete((lst))
 
         #self.observation_space = gym.spaces.Box(np.array([0,0,0]), np.array([max_bitrate, nodes, nodes]))
@@ -330,9 +330,11 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
 
     def observation(self):
-        enough_capacity = [] # each of capacities, lp_free and lp_exist are 500 in size..
+
+        enough_capacity = [] # each of enough_capacity, lp_free and lp_exist are k_paths * num_spectrum_resources in size..
         lp_free = []
         lp_exist = []
+        lp_utilisation = []
         for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
             for channel in range(self.num_spectrum_resources):
                 p = self.k_shortest_paths[self.service.source, self.service.destination][path]
@@ -348,7 +350,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                     lp_exist.append(1)
                 else:
                     lp_exist.append(0)
-        return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + enough_capacity + lp_free + lp_exist
+                edge_utils = []
+                for i in range(len(p.node_list)-1):
+                    edge_utils.append(self.topology[p.node_list[i]][p.node_list[i+1]]['utilization'])
+                lp_utilisation.append(np.max(edge_utils))
+
+        return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + enough_capacity + lp_free + lp_exist + lp_utilisation
         # capacities = []
         # for path in range(self.k_paths):
         #     for channels in range(self.num_spectrum_resources):
