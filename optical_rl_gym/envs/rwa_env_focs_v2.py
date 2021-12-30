@@ -48,8 +48,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
-        self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
+        # self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
+        # (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.num_transmitters = np.zeros(self.topology.number_of_nodes(),)
         self.num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
@@ -228,7 +228,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
-    def reset(self, only_counters=True):
+    def reset(self, only_counters=False):
         # resetting counters for the episode
         # if only_counters:
         #     print("true")
@@ -251,7 +251,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # if not only counters, the whole environment needs to be reset
         super().reset()
         self.initialise_lightpath_capacities()
-        self.lightpath_capacities = self.initialise_capacity_container()
+        # self.lightpath_capacities = self.initialise_capacity_container()
 
         """
         Old version of available wavelengths: array that stores the state of each wavelength on each edge, 1=available, 0=used
@@ -407,7 +407,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
 
         self.update_available_lightpath_capacity(path, wavelength, self.service.bit_rate, True)
-        self.lightpath_capacities[path.path_id, wavelength] -= self.service.bit_rate
+        # self.lightpath_capacities[path.path_id, wavelength] -= self.service.bit_rate
         self.topology.graph['running_services'].append(self.service.service_id)
         self.topology.graph['running_service_wavelengths'].append(wavelength)
         self.service.wavelength = wavelength
@@ -435,7 +435,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         except:
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
-        self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
+        # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
         if service.new_lp:
             self.num_transmitters[int(service.source)-1] -= 1
             self.num_receivers[int(service.destination)-1] -= 1
