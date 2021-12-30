@@ -5,9 +5,10 @@ import numpy as np
 from IPython.display import clear_output
 
 import matplotlib
+import matplotlib.pyplot as plt
 import gym
 from optical_rl_gym.utils import evaluate_heuristic
-from optical_rl_gym.envs.rwa_env_focs_v2 import shortest_available_path_first_fit
+from optical_rl_gym.envs.rwa_env_focs_v2 import kSP_FF, FF_kSP
 
 
 current_directory = os.getcwd()
@@ -28,11 +29,20 @@ env_args = dict(topology=topology, seed=10, load = load,
 
 env = gym.make('RWAFOCS-v2', **env_args)
 
-mean_reward, std_reward = evaluate_heuristic(env, shortest_available_path_first_fit, n_eval_episodes=1,
+# heuristic = kSP_FF
+heuristic = FF_kSP
+
+mean_reward, std_reward = evaluate_heuristic(env, heuristic, n_eval_episodes=1,
                        render=False, callback=None, reward_threshold=None,
                        return_episode_rewards=False)
-print(mean_reward)
-print(std_reward)
+print("mean reward:", mean_reward)
+print("Std reward:", std_reward)
+
+print("Whole training process statistics:")
+rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
+rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
+print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
+print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
 
 num_lps_reused = env.num_lightpaths_reused
 print('Load (Erlangs):', load)
@@ -44,3 +54,17 @@ print('Number of services on existing lightpaths:', num_lps_reused)
 print('Number of services released:', env.num_lightpaths_released)
 print('Number of transmitters on each node:', env.num_transmitters)
 print('Number of receivers on each node:', env.num_receivers)
+
+path_id_util = []
+num_paths = env.topology.number_of_nodes() * (env.topology.number_of_nodes() - 1) * env.k_paths
+for id in range(num_paths):
+    path_id_util.append(np.sum(env.lightpath_service_allocation[id,:]))
+
+x = np.arange(num_paths)
+plt.plot(x, path_id_util)
+plt.xlabel("path ID")
+plt.ylabel("number of wavelengths")
+plt.show()
+
+
+breakpoint()

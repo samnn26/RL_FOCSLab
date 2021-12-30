@@ -209,8 +209,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
             else:
                 self.service.accepted = False
-                self.actions_output[path, wavelength] += 1  # also track unsuccessful (yet legal) choices
-                self.episode_actions_output[path, wavelength] += 1
+                # self.actions_output[path, wavelength] += 1  # also track unsuccessful (yet legal) choices
+                # self.episode_actions_output[path, wavelength] += 1
         else:
             self.service.accepted = False
 
@@ -539,23 +539,47 @@ def shortest_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
 """
 this is equivalent to kSP-FF algo in Robert's paper...
 """
-def shortest_available_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
-    best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+def kSP_FF(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
-        if path.hops < best_hops:  # if path is shorter
+
+        if path.length < best_length:  # if path is shorter
             # checks all wavelengths
             for wavelength in range(env.num_spectrum_resources):
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_hops = path.hops
+                    best_length = path.length
                     decision = (idp, wavelength)
                     break
                 elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate: # viable lightpath exists
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_hops = path.hops
+                    best_length = path.length
+                    decision = (idp, wavelength)
+                    break
+    return decision
+
+
+def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    for wavelength in range(env.num_spectrum_resources):
+        for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+            if path.length < best_length:  # if path is shorter
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_length = path.length
+                    decision = (idp, wavelength)
+                    break
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_length = path.length
                     decision = (idp, wavelength)
                     break
     return decision
