@@ -36,6 +36,7 @@ class Service:
         self.initial_slot = None
         self.accepted = False
         self.wavelength = None
+        self.new_lp = None
 
     def foobar(self):
         return "foobar"

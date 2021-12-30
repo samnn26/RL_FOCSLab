@@ -49,7 +49,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.num_transmitters = np.zeros(self.topology.number_of_nodes(),)
         self.num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
@@ -177,6 +177,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                 self.num_receivers[int(self.service.destination)-1] += 1
                 self.episode_num_transmitters[int(self.service.source)-1] += 1
                 self.episode_num_receivers[int(self.service.destination)-1] += 1
+                self.service.new_lp = True
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
 
                 self.service.accepted = True
@@ -196,7 +197,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-
+                self.service.new_lp = False
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
                 self._add_release(self.service)
@@ -435,10 +436,11 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
         self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
-        self.num_transmitters[int(service.source)-1] -= 1
-        self.num_receivers[int(service.destination)-1] -= 1
-        self.episode_num_transmitters[int(service.source)-1] -= 1
-        self.episode_num_receivers[int(service.destination)-1] -= 1
+        if service.new_lp:
+            self.num_transmitters[int(service.source)-1] -= 1
+            self.num_receivers[int(service.destination)-1] -= 1
+            self.episode_num_transmitters[int(service.source)-1] -= 1
+            self.episode_num_receivers[int(service.destination)-1] -= 1
 
     def _update_network_stats(self):
         """
