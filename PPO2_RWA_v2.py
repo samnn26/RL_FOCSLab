@@ -11,6 +11,7 @@ import tensorflow as tf
 # silencing tensorflow warnings
 import logging
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
+from datetime import datetime
 
 tf.__version__ # printint out tensorflow version used
 import stable_baselines
@@ -92,7 +93,9 @@ env_args = dict(topology=topology, seed=10, load = load,
                 episode_length=50, node_request_probabilities=node_request_probabilities)
 # breakpoint()
 # Create log dir
-log_dir = "./tmp/RWAFOCS-ppo/"
+today = datetime.today().strftime('%Y-%m-%d')
+exp_num = "_2"
+log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
@@ -103,7 +106,7 @@ env = gym.make('RWAFOCS-v2', **env_args)
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
 #net_arch = [3 + env.k_paths*env.num_spectrum_resources*4, 128, 128, 128, 128]
-net_arch = 2*[64] # this is the default used for MlpPolicy 
+net_arch = 2*[64] # this is the default used for MlpPolicy
 # here goes the arguments of the policy network to be used
 policy_args = dict(net_arch=net_arch, # the neural network has five layers with 128 neurons each
                    act_fun=tf.nn.elu) # we use the elu activation function
