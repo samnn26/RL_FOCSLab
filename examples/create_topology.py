@@ -59,10 +59,11 @@ def get_topology(file_name, topology_name, k_paths=2):
 k_paths = 2
 
 #topology = get_topology('./topologies/nsfnet_chen_directional.txt', 'NFSNET', k_paths=k_paths)
-topology = get_topology('./topologies/3_node_network.txt', '3NODENET', k_paths=k_paths)
+topology = get_topology('./topologies/3_node_network_asym.txt', '3NODENETASYM', k_paths=k_paths)
+# topology = get_topology('./topologies/3_node_network_sym.txt', '3NODENETSYM', k_paths=k_paths)
 
 # with open(f'./topologies/nsfnet_chen_{k_paths}-paths_directional.h5', 'wb') as f:
-with open(f'./topologies/3_node_network.h5', 'wb') as f:
+with open(f'./topologies/3_node_network_asym.h5', 'wb') as f:
     pickle.dump(topology, f)
 # breakpoint()
 print('done for', topology)
