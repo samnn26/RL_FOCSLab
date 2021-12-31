@@ -24,6 +24,7 @@ from stable_baselines import results_plotter
 from stable_baselines.common.evaluation import evaluate_policy
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
+import pickle
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -94,10 +95,12 @@ env_args = dict(topology=topology, seed=10, load = load,
 # breakpoint()
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')
-exp_num = "_2"
+exp_num = "_1"
 log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
+
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
+
 
 #env = gym.make('DeepRMSA-v0', **env_args)
 env = gym.make('RWAFOCS-v2', **env_args)
@@ -115,8 +118,7 @@ agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", poli
 
 a = agent.learn(total_timesteps=1000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
-
-
+pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
 #mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
 
 # # Visualise trained agent
