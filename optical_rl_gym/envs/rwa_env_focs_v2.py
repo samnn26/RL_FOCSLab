@@ -632,7 +632,7 @@ def CA_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
 
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
-                    # stores decision and breaks the wavelength loop (first fit)
+
                     if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
                         best_length = path.length
                         mu_wavelength = wavelength
@@ -640,7 +640,7 @@ def CA_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
 
                 elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate: # viable lightpath exists
-                    # stores decision and breaks the wavelength loop (first fit)
+                    
                     if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
                         best_length = path.length
                         mu_wavelength = wavelength
