@@ -584,6 +584,70 @@ def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
                     break
     return decision
 
+
+def kSP_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
+    mu_wavelength = -1
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+
+        if path.length < best_length:  # if path is shorter
+            # checks all wavelengths
+            for wavelength in range(env.num_spectrum_resources):
+
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the wavelength loop (first fit)
+                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+                    # stores decision and breaks the wavelength loop (first fit)
+                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+    return decision
+
+def CA_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_weight = -1
+    mu_wavelength = -1
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+        weight = 0
+        for i in range(len(path.node_list) - 1):
+            frac_unoccupied_wavelengths = (env.num_spectrum_resources - np.count_nonzero(env.topology.graph['available_wavelengths'][
+                      env.topology[path.node_list[i]][path.node_list[i + 1]]['index'],
+                      :])) / env.num_spectrum_resources
+            weight += frac_unoccupied_wavelengths/path.length # currently not multiplying by capacity of path - need to speak to Nikita about how this is being modelled
+        if weight > best_weight:  # find the wavelength for a given path with the best weight
+            # checks all wavelengths
+            for wavelength in range(env.num_spectrum_resources):
+
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the wavelength loop (first fit)
+                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+                    # stores decision and breaks the wavelength loop (first fit)
+                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+    return decision
+
 """
 this performs kSP-LF, i.e. it chooses the wavelength slot for a given path starting with the last slot and scanning backwards
 """
