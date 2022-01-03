@@ -15,7 +15,7 @@ import pdb
 class RWAEnvFOCSV2(OpticalNetworkEnv):
 
     metadata = {
-        'metrics': ['service_blocking_rate', 'episode_service_blocking_rate']
+        'metrics': ['service_blocking_rate', 'episode_service_blocking_rate', 'throughput']
     }
 
     def __init__(self, topology=None,
@@ -50,6 +50,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         # self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
         # (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
+        self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.num_transmitters = np.zeros(self.topology.number_of_nodes(),)
         self.num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
@@ -134,22 +136,23 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
         return c_bps #converted to bps(from Tbps)
 
-    def initialise_capacity_container(self):
+    # def initialise_capacity_container(self):
+    #
+    #     arr = np.zeros([self.topology.number_of_nodes()*
+    #     (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
+    #     nch = self.num_spectrum_resources
+    #     channel_capacities = None
+    #     for idn1, n1 in enumerate(self.topology.nodes()):
+    #         for idn2, n2 in enumerate(self.topology.nodes()):
+    #             if idn1 != idn2:
+    #                 for path in range(self.k_paths):
+    #                     p = self.k_shortest_paths[n1, n2][path]
+    #                     for ch in range(nch):
+    #                         arr[p.path_id,ch] = GN_model.calculate_lightpath_capacity(p.length,ch)
+    #     return arr
 
-        arr = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
-        nch = self.num_spectrum_resources
-        channel_capacities = None
-        for idn1, n1 in enumerate(self.topology.nodes()):
-            for idn2, n2 in enumerate(self.topology.nodes()):
-                if idn1 != idn2:
-                    for path in range(self.k_paths):
-                        p = self.k_shortest_paths[n1, n2][path]
-                        for ch in range(nch):
-                            arr[p.path_id,ch] = GN_model.calculate_lightpath_capacity(p.length,ch)
-        return arr
-
-
+    def get_throughput(self):
+        return np.sum(self.active_bitrates)
 
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
@@ -227,7 +230,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
             'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
             'path_action_probability': np.sum(self.actions_output, axis=1) / np.sum(self.actions_output),
-            'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output)
+            'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output),
+            'throughput': self.get_throughput()
         }
 
         self._new_service = False
@@ -268,6 +272,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
 
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #                                          fill_value=-1, dtype=np.int)
@@ -399,6 +405,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     def _provision_path(self, path: Path, wavelength: int):
 
         self.lightpath_service_allocation[path.path_id, wavelength] += 1
+        self.active_bitrates[path.path_id, wavelength] += self.service.bit_rate
         for i in range(len(path.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength] += 1
             # ind = next(x for x, val in enumerate(self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength]) if x != -1)
@@ -426,6 +433,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         self.num_lightpaths_released += 1
         self.lightpath_service_allocation[service.route.path_id, service.wavelength] -= 1
+        self.active_bitrates[service.route.path_id, service.wavelength] -= service.bit_rate
         for i in range(len(service.route.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] -= 1
             try:

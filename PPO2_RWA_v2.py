@@ -108,7 +108,7 @@ callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 env = gym.make('RWAFOCS-v2', **env_args)
 # logs will be saved in log_dir/training.monitor.csv
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
-env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
+env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
 #net_arch = [3 + env.k_paths*env.num_spectrum_resources*4, 128, 128, 128, 128]
 net_arch = 2*[64] # this is the default used for MlpPolicy
@@ -147,4 +147,5 @@ print('Number of services on existing lightpaths:', num_lps_reused)
 print('Number of services released:', env.num_lightpaths_released)
 print('Number of transmitters on each node:', env.num_transmitters)
 print('Number of receivers on each node:', env.num_receivers)
-# breakpoint()
+
+print('Throughput (TB/s):', env.get_throughput()/1e12)
