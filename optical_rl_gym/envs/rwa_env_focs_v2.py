@@ -26,7 +26,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True):
+                 seed=None, reset=True, exp_request_size=25):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -44,6 +44,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+        self.exp_request_size = exp_request_size
         self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
@@ -324,12 +325,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     def _next_service(self):
         if self._new_service:
             return
-        #at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
-        at = self.current_time + self.mean_service_inter_arrival_time
+        at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
+        #at = self.current_time + self.mean_service_inter_arrival_time
         self.current_time = at
 
-        #ht = self.rng.expovariate(1 / self.mean_service_holding_time)
-        ht = self.mean_service_holding_time
+        ht = self.rng.expovariate(1 / self.mean_service_holding_time) # the 1 / part is due to the definition of the
+        #ht = self.mean_service_holding_time                          # expovariate function in python
         src, src_id, dst, dst_id = self._get_node_pair()
 
         # release connections up to this point
@@ -340,9 +341,15 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             else:  # release is not to be processed yet
                 self._add_release(service_to_release)  # puts service back in the queue
                 break  # breaks the look
+        keep_generating = True
+        while keep_generating:
+            sample = np.random.poisson(lam=1.0)*self.exp_request_size
+            if sample > 0:  # only want to allow requests with non-zero bit rates
+                request_bitrate = np.random.poisson(lam=1.0)*self.exp_request_size
+                keep_generating = False
 
         self.service = Service(self.episode_services_processed, src, src_id, destination=dst, destination_id=dst_id,
-                               arrival_time=at, holding_time=ht, number_slots=1)
+                               arrival_time=at, holding_time=ht, bit_rate = request_bitrate, number_slots=1)
         self._new_service = True
 
 
