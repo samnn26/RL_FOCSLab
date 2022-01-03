@@ -31,7 +31,8 @@ env = gym.make('RWAFOCS-v2', **env_args)
 
 # heuristic = kSP_FF
 # heuristic = FF_kSP
-heuristic = CA_MU
+heuristic = kSP_MU
+# heuristic = CA_MU
 mean_reward, std_reward = evaluate_heuristic(env, heuristic, n_eval_episodes=1,
                        render=False, callback=None, reward_threshold=None,
                        return_episode_rewards=False)

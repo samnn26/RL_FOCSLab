@@ -567,21 +567,24 @@ def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
     # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     best_length = np.inf
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    found_path = False
     for wavelength in range(env.num_spectrum_resources):
+        if found_path:
+            return decision
         for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
             if path.length < best_length:  # if path is shorter
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
-                    # stores decision and breaks the wavelength loop (first fit)
+                    # stores decision and breaks the path loop (first fit)
                     best_length = path.length
                     decision = (idp, wavelength)
-                    break
+                    found_path = True
                 elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate: # viable lightpath exists
                     # stores decision and breaks the wavelength loop (first fit)
                     best_length = path.length
                     decision = (idp, wavelength)
-                    break
+                    found_path = True
     return decision
 
 
@@ -598,16 +601,16 @@ def kSP_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
 
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
-                    # stores decision and breaks the wavelength loop (first fit)
-                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+                    # get usage of wavelength across the whole network (i.e. for all path IDs)
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
                         best_length = path.length
                         mu_wavelength = wavelength
                         decision = (idp, wavelength)
 
                 elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate: # viable lightpath exists
-                    # stores decision and breaks the wavelength loop (first fit)
-                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
+
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
                         best_length = path.length
                         mu_wavelength = wavelength
                         decision = (idp, wavelength)
@@ -633,16 +636,16 @@ def CA_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
 
-                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
-                        best_length = path.length
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_weight = weight # only assign the best weight for viable lightpaths
                         mu_wavelength = wavelength
                         decision = (idp, wavelength)
 
                 elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate: # viable lightpath exists
-                    
-                    if env.lightpath_service_allocation[path.path_id, wavelength] > mu_wavelength:
-                        best_length = path.length
+
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_weight = weight
                         mu_wavelength = wavelength
                         decision = (idp, wavelength)
 
