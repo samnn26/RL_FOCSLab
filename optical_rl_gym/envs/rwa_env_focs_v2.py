@@ -44,6 +44,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+        self.rng_np = np.random.default_rng(seed)  # create numpy random number generator with seed
         self.exp_request_res = exp_request_res
         self.exp_request_lambda = exp_request_lambda
         self.include_utilisation = False
@@ -178,7 +179,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
             if self.is_lightpath_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
             wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
-            self.service.destination][path], wavelength) > self.service.bit_rate:  # if path is free and has sufficient capacity
+            self.service.destination][path], wavelength) >= self.service.bit_rate:  # if path is free and has sufficient capacity
                 self.actions_output[path, wavelength] += 1
                 self.episode_actions_output[path, wavelength] += 1
                 self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
@@ -198,7 +199,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
             elif self.does_lightpath_exist(self.k_shortest_paths[self.service.source, self.service.destination][path],
             wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
-            self.service.destination][path], wavelength) > self.service.bit_rate:
+            self.service.destination][path], wavelength) >= self.service.bit_rate:
                 self.actions_output[path, wavelength] += 1
                 self.episode_actions_output[path, wavelength] += 1
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
@@ -344,7 +345,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                 break  # breaks the look
         keep_generating = True
         while keep_generating:
-            sample = np.random.poisson(lam=self.exp_request_lambda)*self.exp_request_res
+            sample = self.rng_np.poisson(lam=self.exp_request_lambda)*self.exp_request_res
             if sample > 0:  # only want to allow requests with non-zero bit rates
                 request_bitrate = sample
                 keep_generating = False
@@ -381,7 +382,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
                 for channel in range(self.num_spectrum_resources):
                     p = self.k_shortest_paths[self.service.source, self.service.destination][path]
-                    if not self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
+                    if self.get_available_lightpath_capacity(p, channel) < self.service.bit_rate:
                         lp_status.append(0)
                     elif self.is_lightpath_free(p, channel):
                         lp_status.append(1)

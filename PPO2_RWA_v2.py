@@ -73,22 +73,19 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 
 # loading the topology binary file containing the graph and the k-shortest paths
-# if you want to generate your own binary topology file, check examples/create_topology_rmsa.py
 current_directory = os.getcwd()
-# with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+    topology = pickle.load(f)
 # with open(current_directory+'/topologies/3_node_network.h5', 'rb') as f:
 #     topology = pickle.load(f)
 # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
-    topology = pickle.load(f)
+# with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+#     topology = pickle.load(f)
 node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-
 load = 1000
-
-# mean_service_holding_time=7.5,
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
@@ -102,17 +99,10 @@ log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
-
-#env = gym.make('DeepRMSA-v0', **env_args)
 env = gym.make('RWAFOCS-v2', **env_args)
-# logs will be saved in log_dir/training.monitor.csv
-# in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
-# for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
-#net_arch = [3 + env.k_paths*env.num_spectrum_resources*4, 128, 128, 128, 128]
-net_arch = 2*[64] # this is the default used for MlpPolicy
-# here goes the arguments of the policy network to be used
-policy_args = dict(net_arch=net_arch, # the neural network has five layers with 128 neurons each
+net_arch = 2*[64]  # default for MlpPolicy
+policy_args = dict(net_arch=net_arch,
                    act_fun=tf.nn.elu) # we use the elu activation function
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
