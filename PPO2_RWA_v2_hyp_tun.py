@@ -102,33 +102,25 @@ def optimize_agent(trial):
     model = PPO2('MlpPolicy', env, nminibatches=n_training_envs, **model_params)
     model.learn(int(1e2))
     mean_reward, _ = evaluate_policy(model, model.get_env(), n_eval_episodes=1, deterministic = False)
-    return mean_reward
+    return -1 * mean_reward
 
 # loading the topology binary file containing the graph and the k-shortest paths
 # if you want to generate your own binary topology file, check examples/create_topology_rmsa.py
 current_directory = os.getcwd()
-# with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+    topology = pickle.load(f)
+node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+           0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+           0.07607608, 0.12012012, 0.01901902, 0.16916917])
 # with open(current_directory+'/topologies/3_node_network.h5', 'rb') as f:
 #     topology = pickle.load(f)
 # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
-    topology = pickle.load(f)
-node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-       0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
 load = 1000
-
-# mean_service_holding_time=7.5,
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9, exp_request_lambda=1)
-
-
-net_arch = 2*[64] # this is the default used for MlpPolicy
-policy_args = dict(net_arch=net_arch, # the neural network has five layers with 128 neurons each
-                   act_fun=tf.nn.elu) # we use the elu activation function
 
 n_training_envs = 1
 study = optuna.create_study()
