@@ -26,7 +26,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True, exp_request_size=25):
+                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -44,7 +44,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
-        self.exp_request_size = exp_request_size
+        self.exp_request_res = exp_request_res
+        self.exp_request_lambda = exp_request_lambda
         self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
@@ -343,9 +344,9 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                 break  # breaks the look
         keep_generating = True
         while keep_generating:
-            sample = np.random.poisson(lam=1.0)*self.exp_request_size
+            sample = np.random.poisson(lam=self.exp_request_lambda)*self.exp_request_res
             if sample > 0:  # only want to allow requests with non-zero bit rates
-                request_bitrate = np.random.poisson(lam=1.0)*self.exp_request_size
+                request_bitrate = sample
                 keep_generating = False
 
         self.service = Service(self.episode_services_processed, src, src_id, destination=dst, destination_id=dst_id,

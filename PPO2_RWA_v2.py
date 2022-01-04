@@ -92,7 +92,7 @@ load = 1000
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
-                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_size=25e9)
+                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9, exp_request_lambda=1)
 
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')
@@ -138,7 +138,7 @@ print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.
 
 num_lps_reused = env.num_lightpaths_reused
 print('Load (Erlangs):', load)
-print('Service bit rate (Gb/s):', env.service.bit_rate/1e9)
+print('Last service bit rate (Gb/s):', env.service.bit_rate/1e9)
 print('Total number of services:', env.services_processed)
 print('Total number of accepted services:', env.services_accepted)
 print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
