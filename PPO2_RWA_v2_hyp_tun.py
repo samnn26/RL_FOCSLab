@@ -22,9 +22,12 @@ from stable_baselines.bench import Monitor
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines import results_plotter
 from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines.common.vec_env import DummyVecEnv
+
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
+import optuna
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -70,20 +73,57 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
+def make_env():
+    def maker():
+        env = gym.make('RWAFOCS-v2', **env_args)
+        return env
+    return maker
 
+
+def ppo2_params(trial):
+    n_steps = trial.suggest_categorical('n_steps', [16, 32, 64, 128, 256, 512, 1024, 2048])
+    gamma = trial.suggest_categorical('gamma', [0.9, 0.95, 0.98, 0.99, 0.995, 0.999, 0.9999])
+    learning_rate = trial.suggest_loguniform('lr', 1e-5, 1.)
+    ent_coef = trial.suggest_loguniform('ent_coef', 0.00000001, 0.1)
+    cliprange = trial.suggest_categorical('cliprange', [0.1, 0.2, 0.3, 0.4])
+    noptepochs = trial.suggest_categorical('noptepochs', [1, 5, 10, 20, 30, 50])
+    lam = trial.suggest_categorical('lambda', [0.8, 0.9, 0.92, 0.95, 0.98, 0.99, 1.0])
+    number_of_layers = trial.suggest_categorical('num_layers', [2,3,4,5,6,7,8,9,10])
+    number_of_neurons =  trial.suggest_categorical('num_neurons', [32,64,128,256])
+    policy_kwargs = dict(net_arch=number_of_layers*[number_of_neurons],
+                       act_fun=tf.nn.elu)
+    return{
+        'n_steps': n_steps,
+        'gamma': gamma,
+        'learning_rate': learning_rate,
+        'ent_coef': ent_coef,
+        'cliprange': cliprange,
+        'noptepochs': noptepochs,
+        'lam': lam,
+        'policy_kwargs': policy_kwargs
+    }
+
+def optimize_agent(trial):
+    n_training_envs = 1
+    model_params = ppo2_params(trial)
+    # envs = DummyVecEnv([make_env() for _ in range(n_training_envs)])
+    env = gym.make('RWAFOCS-v2', **env_args)
+    model = PPO2('MlpPolicy', env, nminibatches=n_training_envs, **model_params)
+    model.learn(int(1e2))
+    mean_reward, _ = evaluate_policy(model, model.get_env(), n_eval_episodes=1, deterministic = False)
+    return -1 * mean_reward
 
 # loading the topology binary file containing the graph and the k-shortest paths
+# if you want to generate your own binary topology file, check examples/create_topology_rmsa.py
 current_directory = os.getcwd()
 with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
     topology = pickle.load(f)
+node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+           0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+           0.07607608, 0.12012012, 0.01901902, 0.16916917])
 # with open(current_directory+'/topologies/3_node_network.h5', 'rb') as f:
 #     topology = pickle.load(f)
 # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-# with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
-#     topology = pickle.load(f)
-node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-       0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
 load = 1000
 env_args = dict(topology=topology, seed=10, load = load,
@@ -91,50 +131,6 @@ env_args = dict(topology=topology, seed=10, load = load,
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9, exp_request_lambda=1)
 
-# Create log dir
-today = datetime.today().strftime('%Y-%m-%d')
-exp_num = "_0"
-log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
-
-os.makedirs(log_dir, exist_ok=True)
-callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-
-env = gym.make('RWAFOCS-v2', **env_args)
-env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
-net_arch = 2*[64]  # default for MlpPolicy
-policy_args = dict(net_arch=net_arch,
-                   act_fun=tf.nn.elu) # we use the elu activation function
-
-agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
-
-a = agent.learn(total_timesteps=1000, callback=callback)
-results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
-pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
-#mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
-
-# # Visualise trained agent
-# obs = env.reset()
-# for i in range(1):
-#     action, _states = a.predict(obs)
-#     obs, rewards, dones, info = env.step(action)
-#     env.render()
-
-
-print("Whole training process statistics:")
-rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
-rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
-print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
-print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
-
-num_lps_reused = env.num_lightpaths_reused
-print('Load (Erlangs):', load)
-print('Last service bit rate (Gb/s):', env.service.bit_rate/1e9)
-print('Total number of services:', env.services_processed)
-print('Total number of accepted services:', env.services_accepted)
-print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
-print('Number of services on existing lightpaths:', num_lps_reused)
-print('Number of services released:', env.num_lightpaths_released)
-print('Number of transmitters on each node:', env.num_transmitters)
-print('Number of receivers on each node:', env.num_receivers)
-
-print('Throughput (TB/s):', env.get_throughput()/1e12)
+n_training_envs = 1
+study = optuna.create_study()
+study.optimize(optimize_agent, n_trials=1, n_jobs = n_training_envs)

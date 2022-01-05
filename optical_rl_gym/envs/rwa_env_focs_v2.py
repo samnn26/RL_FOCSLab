@@ -5,7 +5,7 @@ import heapq
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-
+import time
 import GN_model
 from optical_rl_gym.utils import Service, Path, LightPath
 from .optical_network_env import OpticalNetworkEnv
@@ -15,7 +15,7 @@ import pdb
 class RWAEnvFOCSV2(OpticalNetworkEnv):
 
     metadata = {
-        'metrics': ['service_blocking_rate', 'episode_service_blocking_rate']
+        'metrics': ['service_blocking_rate', 'episode_service_blocking_rate', 'throughput']
     }
 
     def __init__(self, topology=None,
@@ -26,7 +26,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True):
+                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -44,9 +44,17 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+        self.rng_np = np.random.default_rng(seed)  # create numpy random number generator with seed
+        self.exp_request_res = exp_request_res
+        self.exp_request_lambda = exp_request_lambda
+        self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        # self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
+        # (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
+        self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.num_transmitters = np.zeros(self.topology.number_of_nodes(),)
         self.num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
@@ -74,7 +82,20 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         nodes = self.topology.number_of_nodes()
         number_of_bitrates = 100 # test
-        self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes))
+        number_of_utils = 100
+        #self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes,number_of_capacities))
+        if self.include_utilisation:
+            # lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
+            lst = [nodes,nodes] + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*3).tolist() + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*number_of_utils).tolist()
+        else:
+            # lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
+            lst =  [nodes,nodes] + (np.ones(self.k_paths *
+                self.num_spectrum_resources)*3).tolist()
+        self.observation_space= gym.spaces.MultiDiscrete((lst))
+
+        #self.observation_space = gym.spaces.Box(np.array([0,0,0]), np.array([max_bitrate, nodes, nodes]))
         self.action_space.seed(self.rand_seed)
         self.observation_space.seed(self.rand_seed)
 
@@ -104,17 +125,41 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         ligthpath.available_capacity = new_capacity
         #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
 
-    def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
+    # def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
+    #
+    #     p = self.k_shortest_paths[source, dest][path_ind]
+    #     c = p.lightpaths[channel_ind]
+    #     c_bps = c.available_capacity*1e12
+    #     #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
+    #     return c_bps #converted to bps(from Tbps)
+    def get_available_lightpath_capacity(self, path, channel_ind):
 
-        p = self.k_shortest_paths[source, dest][path_ind]
-        c = p.lightpaths[channel_ind]
+        c = path.lightpaths[channel_ind]
         c_bps = c.available_capacity*1e12
         #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
         return c_bps #converted to bps(from Tbps)
 
+    # def initialise_capacity_container(self):
+    #
+    #     arr = np.zeros([self.topology.number_of_nodes()*
+    #     (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
+    #     nch = self.num_spectrum_resources
+    #     channel_capacities = None
+    #     for idn1, n1 in enumerate(self.topology.nodes()):
+    #         for idn2, n2 in enumerate(self.topology.nodes()):
+    #             if idn1 != idn2:
+    #                 for path in range(self.k_paths):
+    #                     p = self.k_shortest_paths[n1, n2][path]
+    #                     for ch in range(nch):
+    #                         arr[p.path_id,ch] = GN_model.calculate_lightpath_capacity(p.length,ch)
+    #     return arr
+
+    def get_throughput(self):
+        return np.sum(self.active_bitrates)
+
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
-        nch = 101  # call a method in gn model to retriev this
+        nch = self.num_spectrum_resources
         channel_capacities = None
         for idn1, n1 in enumerate(self.topology.nodes()):
             for idn2, n2 in enumerate(self.topology.nodes()):
@@ -126,19 +171,22 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
 
-    def step(self, action: Sequence[int]):
 
+    def step(self, action: Sequence[int]):
+#p = self.k_shortest_paths[source, dest][path_ind]
         path, wavelength = action[0], action[1]
-        self.actions_output[path, wavelength] += 1
-        self.episode_actions_output[path, wavelength] += 1
+
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
             if self.is_lightpath_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
-            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
-            path, wavelength) > self.service.bit_rate:  # if path is free and has sufficient capacity
+            wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
+            self.service.destination][path], wavelength) >= self.service.bit_rate:  # if path is free and has sufficient capacity
+                self.actions_output[path, wavelength] += 1
+                self.episode_actions_output[path, wavelength] += 1
                 self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
                 self.num_receivers[int(self.service.destination)-1] += 1
                 self.episode_num_transmitters[int(self.service.source)-1] += 1
                 self.episode_num_receivers[int(self.service.destination)-1] += 1
+                self.service.new_lp = True
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
 
                 self.service.accepted = True
@@ -150,21 +198,25 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                 self._add_release(self.service)
 
             elif self.does_lightpath_exist(self.k_shortest_paths[self.service.source, self.service.destination][path],
-            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
-            path, wavelength) > self.service.bit_rate:
+            wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
+            self.service.destination][path], wavelength) >= self.service.bit_rate:
+                self.actions_output[path, wavelength] += 1
+                self.episode_actions_output[path, wavelength] += 1
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
                 self.num_lightpaths_reused += 1
                 self.episode_num_lightpaths_reused += 1
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-
+                self.service.new_lp = False
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
                 self._add_release(self.service)
 
             else:
                 self.service.accepted = False
+                # self.actions_output[path, wavelength] += 1  # also track unsuccessful (yet legal) choices
+                # self.episode_actions_output[path, wavelength] += 1
         else:
             self.service.accepted = False
 
@@ -181,7 +233,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
             'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
             'path_action_probability': np.sum(self.actions_output, axis=1) / np.sum(self.actions_output),
-            'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output)
+            'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output),
+            'throughput': self.get_throughput()
         }
 
         self._new_service = False
@@ -189,12 +242,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
-    def reset(self, only_counters=True):
+    def reset(self, only_counters=False):
         # resetting counters for the episode
-        if only_counters:
-            print("true")
-        else:
-            print("false")
+        # if only_counters:
+        #     print("true")
+        # else:
+        #     print("false")
 
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,
                                         self.num_spectrum_resources + self.reject_action), dtype=int)
@@ -212,6 +265,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # if not only counters, the whole environment needs to be reset
         super().reset()
         self.initialise_lightpath_capacities()
+        # self.lightpath_capacities = self.initialise_capacity_container()
+
         """
         Old version of available wavelengths: array that stores the state of each wavelength on each edge, 1=available, 0=used
         New version of available wavelengths: array that stores the number of services on each wavelength on each edge.
@@ -220,6 +275,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
 
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #                                          fill_value=-1, dtype=np.int)
@@ -270,12 +327,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     def _next_service(self):
         if self._new_service:
             return
-        #at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
-        at = self.current_time + self.mean_service_inter_arrival_time
+        at = self.current_time + self.rng.expovariate(1 / self.mean_service_inter_arrival_time)
+        #at = self.current_time + self.mean_service_inter_arrival_time
         self.current_time = at
 
-        #ht = self.rng.expovariate(1 / self.mean_service_holding_time)
-        ht = self.mean_service_holding_time
+        ht = self.rng.expovariate(1 / self.mean_service_holding_time) # the 1 / part is due to the definition of the
+        #ht = self.mean_service_holding_time                          # expovariate function in python
         src, src_id, dst, dst_id = self._get_node_pair()
 
         # release connections up to this point
@@ -286,14 +343,64 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             else:  # release is not to be processed yet
                 self._add_release(service_to_release)  # puts service back in the queue
                 break  # breaks the look
+        keep_generating = True
+        while keep_generating:
+            sample = self.rng_np.poisson(lam=self.exp_request_lambda)*self.exp_request_res
+            if sample > 0:  # only want to allow requests with non-zero bit rates
+                request_bitrate = sample
+                keep_generating = False
 
         self.service = Service(self.episode_services_processed, src, src_id, destination=dst, destination_id=dst_id,
-                               arrival_time=at, holding_time=ht, number_slots=1)
+                               arrival_time=at, holding_time=ht, bit_rate = request_bitrate, number_slots=1)
         self._new_service = True
+
 
     def observation(self):
 
-        return [self.service.bit_rate,self.service.source_id,self.service.destination_id]
+        if self.include_utilisation:
+            lp_status = []
+            lp_utilisation = []
+            for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
+                for channel in range(self.num_spectrum_resources):
+                    p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+                    if not self.get_available_lightpath_capacity(p, channel) > self.service.bit_rate:
+                        lp_status.append(0)
+                    elif self.is_lightpath_free(p, channel):
+                        lp_status.append(1)
+                    elif self.does_lightpath_exist(p, channel):
+                        lp_status.append(2)
+                    else:
+                        lp_status.append(0)
+                    edge_utils = []
+                    for i in range(len(p.node_list)-1):
+                        edge_utils.append(self.topology[p.node_list[i]][p.node_list[i+1]]['utilization'])
+                    lp_utilisation.append(np.max(edge_utils))
+
+            return [self.service.source_id,self.service.destination_id] + lp_status + lp_utilisation
+        else:
+            lp_status = []
+            for path in range(self.k_paths):  # probably too slow! Try to think of a better way...
+                for channel in range(self.num_spectrum_resources):
+                    p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+                    if self.get_available_lightpath_capacity(p, channel) < self.service.bit_rate:
+                        lp_status.append(0)
+                    elif self.is_lightpath_free(p, channel):
+                        lp_status.append(1)
+                    elif self.does_lightpath_exist(p, channel):
+                        lp_status.append(2)
+                    else:
+                        lp_status.append(0)
+            return [self.service.source_id,self.service.destination_id] + lp_status
+        # capacities = []
+        # for path in range(self.k_paths):
+        #     for channels in range(self.num_spectrum_resources):
+        #         p = self.k_shortest_paths[self.service.source, self.service.destination][path]
+        #         capacities.append(self.lightpath_capacities[p.path_id,channels])
+        # return [self.service.bit_rate,self.service.source_id,self.service.destination_id] + capacities
+
+        #return [self.service.bit_rate, self.service.source_id, self.service.destination_id]
+
+
     """
     self.observation_space = spaces.Tuple(( spaces.Discrete(self.k_paths ),
      spaces.Discrete(self.k_paths ), spaces.Discrete(self.num_spectrum_resources)))
@@ -307,6 +414,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     def _provision_path(self, path: Path, wavelength: int):
 
         self.lightpath_service_allocation[path.path_id, wavelength] += 1
+        self.active_bitrates[path.path_id, wavelength] += self.service.bit_rate
         for i in range(len(path.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength] += 1
             # ind = next(x for x, val in enumerate(self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength]) if x != -1)
@@ -322,6 +430,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             self._update_link_stats(path.node_list[i], path.node_list[i + 1])
 
         self.update_available_lightpath_capacity(path, wavelength, self.service.bit_rate, True)
+        # self.lightpath_capacities[path.path_id, wavelength] -= self.service.bit_rate
         self.topology.graph['running_services'].append(self.service.service_id)
         self.topology.graph['running_service_wavelengths'].append(wavelength)
         self.service.wavelength = wavelength
@@ -333,6 +442,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         self.num_lightpaths_released += 1
         self.lightpath_service_allocation[service.route.path_id, service.wavelength] -= 1
+        self.active_bitrates[service.route.path_id, service.wavelength] -= service.bit_rate
         for i in range(len(service.route.node_list) - 1):
             self.topology.graph['available_wavelengths'][self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['index'], service.wavelength] -= 1
             try:
@@ -349,10 +459,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         except:
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
-        self.num_transmitters[int(service.source)-1] -= 1
-        self.num_receivers[int(service.destination)-1] -= 1
-        self.episode_num_transmitters[int(service.source)-1] -= 1
-        self.episode_num_receivers[int(service.destination)-1] -= 1
+        # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
+        if service.new_lp:
+            self.num_transmitters[int(service.source)-1] -= 1
+            self.num_receivers[int(service.destination)-1] -= 1
+            self.episode_num_transmitters[int(service.source)-1] -= 1
+            self.episode_num_receivers[int(service.destination)-1] -= 1
 
     def _update_network_stats(self):
         """
@@ -389,7 +501,6 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
     we want to call is_lightpath_free for each of the k-shortest paths on each wavelength in turn - only if none are free
     do we then move on to the next wavelength
     """
-
     def is_lightpath_free(self, path: Path, wavelength: int) -> bool:
          # if wavelength is out of range, return false
         if wavelength > self.num_spectrum_resources:
@@ -409,6 +520,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             return True
         else:
             return False
+
+
 
 """
 not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
@@ -443,33 +556,133 @@ def shortest_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
 """
 this is equivalent to kSP-FF algo in Robert's paper...
 """
-def shortest_available_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
-    best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+def kSP_FF(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
-        if path.hops < best_hops:  # if path is shorter
+
+        if path.length < best_length:  # if path is shorter
             # checks all wavelengths
             for wavelength in range(env.num_spectrum_resources):
-                if env.is_lightpath_free(path, wavelength):  # if wavelength is found
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_hops = path.hops
+                    best_length = path.length
                     decision = (idp, wavelength)
                     break
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_length = path.length
+                    decision = (idp, wavelength)
+                    break
+    return decision
+
+
+def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    found_path = False
+    for wavelength in range(env.num_spectrum_resources):
+        if found_path:
+            return decision
+        for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+            if path.length < best_length:  # if path is shorter
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the path loop (first fit)
+                    best_length = path.length
+                    decision = (idp, wavelength)
+                    found_path = True
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_length = path.length
+                    decision = (idp, wavelength)
+                    found_path = True
+    return decision
+
+
+def kSP_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
+    mu_wavelength = -1
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+
+        if path.length < best_length:  # if path is shorter
+            # checks all wavelengths
+            for wavelength in range(env.num_spectrum_resources):
+
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # get usage of wavelength across the whole network (i.e. for all path IDs)
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_length = path.length
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+    return decision
+
+def CA_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_weight = -1
+    mu_wavelength = -1
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+        weight = 0
+        for i in range(len(path.node_list) - 1):
+            frac_unoccupied_wavelengths = (env.num_spectrum_resources - np.count_nonzero(env.topology.graph['available_wavelengths'][
+                      env.topology[path.node_list[i]][path.node_list[i + 1]]['index'],
+                      :])) / env.num_spectrum_resources
+            weight += frac_unoccupied_wavelengths/path.length # currently not multiplying by capacity of path - need to speak to Nikita about how this is being modelled
+        if weight > best_weight:  # find the wavelength for a given path with the best weight
+            # checks all wavelengths
+            for wavelength in range(env.num_spectrum_resources):
+
+                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_weight = weight # only assign the best weight for viable lightpaths
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
+                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate: # viable lightpath exists
+
+                    if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
+                        best_weight = weight
+                        mu_wavelength = wavelength
+                        decision = (idp, wavelength)
+
     return decision
 
 """
 this performs kSP-LF, i.e. it chooses the wavelength slot for a given path starting with the last slot and scanning backwards
 """
 def shortest_available_path_last_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
-    best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
+    best_length = np.inf
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
-        if path.hops < best_hops:  # if path is shorter
+        if path.length < best_length:  # if path is shorter
             # checks all wavelengths from the highest to the lowest index
             for wavelength in range(env.num_spectrum_resources-1, 0, -1):
                 if env.is_lightpath_free(path, wavelength):  # if wavelength is found
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_hops = path.hops
+                    # best_hops = path.hops
+                    best_length = path.length
                     decision = (idp, wavelength)
                     break
     return decision
