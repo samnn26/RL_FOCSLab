@@ -22,6 +22,8 @@ from stable_baselines.bench import Monitor
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines import results_plotter
 from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines.common.vec_env import DummyVecEnv
+
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
@@ -71,6 +73,13 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
+def make_env():
+    def maker():
+        env = gym.make('RWAFOCS-v2', **env_args)
+        return env
+    return maker
+
+
 def ppo2_params(trial):
     n_steps = trial.suggest_categorical('n_steps', [16, 32, 64, 128, 256, 512, 1024, 2048])
     gamma = trial.suggest_categorical('gamma', [0.9, 0.95, 0.98, 0.99, 0.995, 0.999, 0.9999])
@@ -97,7 +106,7 @@ def ppo2_params(trial):
 def optimize_agent(trial):
     n_training_envs = 1
     model_params = ppo2_params(trial)
-    #envs = DummyVecEnv([make_env() for _ in range(n_training_envs)])
+    # envs = DummyVecEnv([make_env() for _ in range(n_training_envs)])
     env = gym.make('RWAFOCS-v2', **env_args)
     model = PPO2('MlpPolicy', env, nminibatches=n_training_envs, **model_params)
     model.learn(int(1e2))

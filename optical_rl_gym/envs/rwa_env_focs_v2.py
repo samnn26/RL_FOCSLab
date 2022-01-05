@@ -87,12 +87,12 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         if self.include_utilisation:
             # lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
             lst = [nodes,nodes] + (np.ones(self.k_paths *
-            self.num_spectrum_resources)*4).tolist() + (np.ones(self.k_paths *
+            self.num_spectrum_resources)*3).tolist() + (np.ones(self.k_paths *
             self.num_spectrum_resources)*number_of_utils).tolist()
         else:
             # lst = [number_of_bitrates,nodes,nodes] + (np.ones(self.k_paths *
             lst =  [nodes,nodes] + (np.ones(self.k_paths *
-                self.num_spectrum_resources)*4).tolist()
+                self.num_spectrum_resources)*3).tolist()
         self.observation_space= gym.spaces.MultiDiscrete((lst))
 
         #self.observation_space = gym.spaces.Box(np.array([0,0,0]), np.array([max_bitrate, nodes, nodes]))
@@ -370,7 +370,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                     elif self.does_lightpath_exist(p, channel):
                         lp_status.append(2)
                     else:
-                        lp_status.append(3)
+                        lp_status.append(0)
                     edge_utils = []
                     for i in range(len(p.node_list)-1):
                         edge_utils.append(self.topology[p.node_list[i]][p.node_list[i+1]]['utilization'])
@@ -389,7 +389,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                     elif self.does_lightpath_exist(p, channel):
                         lp_status.append(2)
                     else:
-                        lp_status.append(3)
+                        lp_status.append(0)
             return [self.service.source_id,self.service.destination_id] + lp_status
         # capacities = []
         # for path in range(self.k_paths):
