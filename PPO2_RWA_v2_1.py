@@ -86,7 +86,7 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
 load = 1e10
 
 # mean_service_holding_time=7.5,
-env_args = dict(topology=topology, seed=10, load = load,
+env_args = dict(topology=topology, seed=10,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=7.5, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities)
@@ -109,7 +109,7 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v21/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=2000, callback=callback)
+a = agent.learn(total_timesteps=20000, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA_V2_1")
 
 

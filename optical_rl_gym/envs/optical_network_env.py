@@ -13,7 +13,7 @@ class OpticalNetworkEnv(gym.Env):
 
 
 
-    def __init__(self, topology=None, episode_length=1000, load=10, mean_service_holding_time=10800.0,
+    def __init__(self, topology=None, episode_length=1000, load=10, mean_service_holding_time=100.0,
                  num_spectrum_resources=100, allow_rejection=False,
                  node_request_probabilities=None, seed=None, k_paths=5):
         """
@@ -51,6 +51,7 @@ class OpticalNetworkEnv(gym.Env):
         self.rand_seed = None
         self.rng = None
         self.seed(seed=seed)
+
 
         if topology is None:
             # defines a dummy topology
@@ -218,7 +219,6 @@ class OpticalNetworkEnv(gym.Env):
         self.topology.graph['available_spectrum'] = np.full((self.topology.number_of_edges()),
                                                             fill_value=self.num_spectrum_resources,
                                                             dtype=int)
-
         self.topology.graph["services"] = []
         self.topology.graph["service_wavelengths"] = []
         self.topology.graph["running_services"] = []
