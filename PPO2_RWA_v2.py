@@ -25,6 +25,8 @@ from stable_baselines.common.evaluation import evaluate_policy
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
+from stable_baselines.common.vec_env import DummyVecEnv
+
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -70,7 +72,12 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
-
+def make_env():
+    def maker():
+        env = gym.make('RWAFOCS-v2', **env_args)
+        env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
+        return env
+    return maker
 
 # loading the topology binary file containing the graph and the k-shortest paths
 current_directory = os.getcwd()
@@ -93,48 +100,66 @@ env_args = dict(topology=topology, seed=10, load = load,
 
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')
-exp_num = "_0"
+exp_num = "_1"
 log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
 
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
-env = gym.make('RWAFOCS-v2', **env_args)
-env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
-net_arch = 2*[64]  # default for MlpPolicy
-policy_args = dict(net_arch=net_arch,
-                   act_fun=tf.nn.elu) # we use the elu activation function
+continue_training = False
 
-agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+if continue_training:  # we need the DummyVecEnv to resume training, this is just an implementation issue
+    env = DummyVecEnv([make_env()])
+    model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
+    agent = PPO2.load(model_dir+'/best_model')
+    agent.set_env(env)
+    a = agent.learn(total_timesteps=1000, callback=callback)
+    pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
+    env_print = env.envs[0] # get environment from DummyVecEnv
+    print("Whole training process statistics:")
+    rnd_path_action_probability = np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output)
+    rnd_wavelength_action_probability = np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output)
+    print('Path action probability:', np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output))
+    print('Wavelength action probability:', np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output))
+    print('Load (Erlangs):', load)
+    print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
+    print('Total number of services:', env_print.services_processed)
+    print('Total number of accepted services:', env_print.services_accepted)
+    print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
+    print('Number of services on existing lightpaths:', env_print.num_lightpaths_reused)
+    print('Number of services released:', env_print.num_lightpaths_released)
+    print('Number of transmitters on each node:', env_print.num_transmitters)
+    print('Number of receivers on each node:', env_print.num_receivers)
+    print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
-a = agent.learn(total_timesteps=1000, callback=callback)
-results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
-pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
-#mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
+else:
+    env = gym.make('RWAFOCS-v2', **env_args)
+    env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
+    net_arch = 2*[64]  # default for MlpPolicy
+    policy_args = dict(net_arch=net_arch,
+                       act_fun=tf.nn.elu) # we use the elu activation function
 
-# # Visualise trained agent
-# obs = env.reset()
-# for i in range(1):
-#     action, _states = a.predict(obs)
-#     obs, rewards, dones, info = env.step(action)
-#     env.render()
+    agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
+    a = agent.learn(total_timesteps=1000, callback=callback)
+    results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+    pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
 
-print("Whole training process statistics:")
-rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
-rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
-print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
-print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
+    print("Whole training process statistics:")
+    rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
+    rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
+    print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
+    print('Wavelength action probability:', np.sum(env.actions_output, axis=0) / np.sum(env.actions_output))
 
-num_lps_reused = env.num_lightpaths_reused
-print('Load (Erlangs):', load)
-print('Last service bit rate (Gb/s):', env.service.bit_rate/1e9)
-print('Total number of services:', env.services_processed)
-print('Total number of accepted services:', env.services_accepted)
-print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
-print('Number of services on existing lightpaths:', num_lps_reused)
-print('Number of services released:', env.num_lightpaths_released)
-print('Number of transmitters on each node:', env.num_transmitters)
-print('Number of receivers on each node:', env.num_receivers)
+    num_lps_reused = env.num_lightpaths_reused
+    print('Load (Erlangs):', load)
+    print('Last service bit rate (Gb/s):', env.service.bit_rate/1e9)
+    print('Total number of services:', env.services_processed)
+    print('Total number of accepted services:', env.services_accepted)
+    print('Blocking probability:', 1 - env.services_accepted/env.services_processed)
+    print('Number of services on existing lightpaths:', num_lps_reused)
+    print('Number of services released:', env.num_lightpaths_released)
+    print('Number of transmitters on each node:', env.num_transmitters)
+    print('Number of receivers on each node:', env.num_receivers)
 
-print('Throughput (TB/s):', env.get_throughput()/1e12)
+    print('Final throughput (TB/s):', env.get_throughput()/1e12)
