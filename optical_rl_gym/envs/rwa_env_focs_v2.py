@@ -231,14 +231,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         self.topology.graph['services'].append(self.service)
 
-        if self.term_on_first_block:
-            if not self.service.accepted:
-                self.terminated = True  # give 0 reward from now on in training
 
-        if self.terminated:
-            reward = 0
-        else:
-            reward = self.reward()
+        reward = self.reward()
         info = {
             'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
             'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
@@ -248,9 +242,16 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         }
 
         self._new_service = False
+        current_service_accepted = self.service.accepted # save the old service before calling _next_service
         self._next_service()
 
-        return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        if self.term_on_first_block:
+            if not current_service_accepted:
+                return self.observation(), reward, True, info
+            else:
+                return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        else:
+            return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
     def reset(self, only_counters=False):
         # resetting counters for the episode
