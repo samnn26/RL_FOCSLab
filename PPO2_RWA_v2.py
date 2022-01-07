@@ -96,7 +96,8 @@ load = 1000
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
-                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9, exp_request_lambda=1)
+                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9,
+                exp_request_lambda=1, term_on_first_block=True)
 
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')

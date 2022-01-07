@@ -26,7 +26,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1):
+                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=True):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -44,6 +44,8 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+        self.term_on_first_block = term_on_first_block # whether or not to terminate episode rewards after first blocking
+        self.terminated = False
         self.cumulative_throughput = []  # for debugging throughput calc
         self.rng_np = np.random.default_rng(seed)  # create numpy random number generator with seed
         self.exp_request_res = exp_request_res
@@ -229,7 +231,14 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 
         self.topology.graph['services'].append(self.service)
 
-        reward = self.reward()
+        if self.term_on_first_block:
+            if not self.service.accepted:
+                self.terminated = True  # give 0 reward from now on in training
+
+        if self.terminated:
+            reward = 0
+        else:
+            reward = self.reward()
         info = {
             'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
             'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
