@@ -134,7 +134,7 @@ if continue_training:  # we need the DummyVecEnv to resume training, this is jus
     print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
 else:
-    env = gym.make('RWAFOCS-v2', **env_args)
+    env = gym.make('RWAFOCS-v22', **env_args)
     env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
     net_arch = 2*[64]  # default for MlpPolicy
     policy_args = dict(net_arch=net_arch)
