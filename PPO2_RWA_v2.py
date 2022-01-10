@@ -137,8 +137,7 @@ else:
     env = gym.make('RWAFOCS-v2', **env_args)
     env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
     net_arch = 2*[64]  # default for MlpPolicy
-    policy_args = dict(net_arch=net_arch,
-                       act_fun=tf.nn.elu) # we use the elu activation function
+    policy_args = dict(net_arch=net_arch)
 
     agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
