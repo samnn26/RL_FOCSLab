@@ -12,7 +12,7 @@ from .optical_network_env import OpticalNetworkEnv
 import pdb
 
 
-class RWAEnvFOCSV2(OpticalNetworkEnv):
+class RWAEnvFOCSV2_3(OpticalNetworkEnv):
 
     metadata = {
         'metrics': ['service_blocking_rate', 'episode_service_blocking_rate', 'throughput']
@@ -243,10 +243,11 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
             'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output),
             'throughput': self.get_throughput()
         }
-
+        
         self._new_service = False
         current_service_accepted = self.service.accepted # save the old service before calling _next_service
-        self._next_service()
+        if self.service.accepted:
+            self._next_service()  # give the agent the same service again if blocking.
 
         if self.term_on_first_block:
             if not current_service_accepted:
@@ -542,7 +543,7 @@ class RWAEnvFOCSV2(OpticalNetworkEnv):
 """
 not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
 """
-def get_path_capacity(env: RWAEnvFOCSV2, path: Path) -> int:
+def get_path_capacity(env: RWAEnvFOCSV2_3, path: Path) -> int:
     capacity = 0
     # checks all wavelengths to see which ones are available
     for wavelength in range(env.num_spectrum_resources):
@@ -562,7 +563,7 @@ this is what we need to do - loop first over the wavelengths and then get the ag
 we need to modify the tracking of the paths, i.e. is_lightpath_free will become is_path_capacity_sufficient() ...
 this is equivalent to Robert's FF-SP algo. - needs another loop over the k paths to make it FF-kSP
 """
-def shortest_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
+def shortest_path_first_fit(env: RWAEnvFOCSV2_3) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
         if env.is_lightpath_free(env.k_shortest_paths[env.service.source, env.service.destination][0], wavelength):
             return (0, wavelength)
@@ -578,7 +579,7 @@ working heuristics have moved to optical_rl_gym/heuristics.py !
 """
 this performs kSP-LF, i.e. it chooses the wavelength slot for a given path starting with the last slot and scanning backwards
 """
-def shortest_available_path_last_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
+def shortest_available_path_last_fit(env: RWAEnvFOCSV2_3) -> Sequence[int]:
     # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     best_length = np.inf
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
@@ -595,7 +596,7 @@ def shortest_available_path_last_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
     return decision
 
 
-def least_loaded_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
+def least_loaded_path_first_fit(env: RWAEnvFOCSV2_3) -> Sequence[int]:
     best_load = np.finfo(0.0).min
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
@@ -613,7 +614,7 @@ def least_loaded_path_first_fit(env: RWAEnvFOCSV2) -> Sequence[int]:
 
 class PathOnlyFirstFitAction(gym.ActionWrapper):
 
-    def __init__(self, env: RWAEnvFOCSV2):
+    def __init__(self, env: RWAEnvFOCSV2_3):
         super().__init__(env)
         self.action_space = gym.spaces.Discrete(self.env.k_paths + self.env.reject_action)
         self.observation_space = env.observation_space

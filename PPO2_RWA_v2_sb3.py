@@ -14,18 +14,20 @@ logging.getLogger('tensorflow').setLevel(logging.FATAL)
 from datetime import datetime
 
 tf.__version__ # printint out tensorflow version used
-import stable_baselines
-from stable_baselines.common.callbacks import BaseCallback
-from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines import PPO2
-from stable_baselines.bench import Monitor
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines import results_plotter
-from stable_baselines.common.evaluation import evaluate_policy
+import stable_baselines3
+from stable_baselines3.common.callbacks import BaseCallback
+# from stable_baselines3.results_plotter import load_results, ts2xy
+from stable_baselines3.common.results_plotter import load_results, ts2xy
+from stable_baselines3 import PPO
+# from stable_baselines3.bench import Monitor
+from stable_baselines3.common.monitor import Monitor
+#from stable_baselines3.common.policies import MlpPolicy
+from stable_baselines3.common import results_plotter
+from stable_baselines3.common.evaluation import evaluate_policy
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
-from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
@@ -96,12 +98,11 @@ load = 1000
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
-                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9,
-                exp_request_lambda=1, term_on_first_block=False)
+                episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9, exp_request_lambda=1)
 
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')
-exp_num = "_1"
+exp_num = "_testsb3"
 log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
 
 os.makedirs(log_dir, exist_ok=True)
@@ -112,9 +113,9 @@ continue_training = False
 if continue_training:  # we need the DummyVecEnv to resume training, this is just an implementation issue
     env = DummyVecEnv([make_env()])
     model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
-    agent = PPO2.load(model_dir+'/best_model')
+    agent = PPO.load(model_dir+'/best_model')
     agent.set_env(env)
-    a = agent.learn(total_timesteps=1000, callback=callback)
+    a = agent.learn(total_timesteps=int(2e6), callback=callback)
     pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
     env_print = env.envs[0] # get environment from DummyVecEnv
     print("Whole training process statistics:")
@@ -134,15 +135,15 @@ if continue_training:  # we need the DummyVecEnv to resume training, this is jus
     print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
 else:
-    env = gym.make('RWAFOCS-v23', **env_args)
+    env = gym.make('RWAFOCS-v2', **env_args)
     env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
     net_arch = 2*[64]  # default for MlpPolicy
-    policy_args = dict(net_arch=net_arch)
+    policy_args = dict(net_arch=net_arch) # we use the elu activation function
 
-    agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+    agent = PPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-    a = agent.learn(total_timesteps=2000, callback=callback)
-    results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+    a = agent.learn(total_timesteps=1000, callback=callback)
+    #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
     pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
 
     print("Whole training process statistics:")

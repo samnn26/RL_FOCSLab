@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from graph_utils import read_sndlib_topology, read_txt_file, get_k_shortest_paths, get_path_weight
 
 
-def get_topology(file_name, topology_name, k_paths=5):
+def get_topology(file_name, topology_name, k_paths=2):
     k_shortest_paths = {}
     if file_name.endswith('.xml'):
         topology = read_sndlib_topology(file_name)
@@ -56,11 +56,16 @@ def get_topology(file_name, topology_name, k_paths=5):
     return topology
 
 
-k_paths = 5
+k_paths = 4
+base_topology_name = 'nsfnet_chen_directional.txt'
+# base_topology_name = '3_node_network_asym.txt'
+# base_topology_name = '3_node_network_asym.txt'
+new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_directional.h5'
+# new_topology_name = '3_node_network_asym.h5'
+# new_topology_name = '3_node_network_sym.h5'
 
-topology = get_topology('./topologies/nsfnet_chen_directional.txt', 'NFSNET', k_paths=k_paths)
+topology = get_topology('./topologies/'+base_topology_name, 'NFSNET', k_paths=k_paths)
 
-with open(f'./topologies/nsfnet_chen_{k_paths}-paths_directional.h5', 'wb') as f:
+with open(f'./topologies/'+new_topology_name, 'wb') as f:
     pickle.dump(topology, f)
-# breakpoint()
 print('done for', topology)
