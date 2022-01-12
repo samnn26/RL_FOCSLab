@@ -86,18 +86,18 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
 load = 1000
 
 # mean_service_holding_time=7.5,
-env_args = dict(topology=topology, seed=10,
+env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
-                mean_service_holding_time=17.5, # value is not set as in the paper to achieve comparable reward values
+                mean_service_holding_time=7.5, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities)
 # breakpoint()
 # Create log dir
-log_dir = "./tmp/RWAFOCS-ppo_v21/"
+log_dir = "./tmp/RWAFOCS-ppo_v25/"
 os.makedirs(log_dir, exist_ok=True)
-callback = SaveOnBestTrainingRewardCallback(check_freq=50, log_dir=log_dir)
+callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
 #env = gym.make('DeepRMSA-v0', **env_args)
-env = gym.make('RWAFOCS-v21', **env_args)
+env = gym.make('RWAFOCS-v25', **env_args)
 # logs will be saved in log_dir/training.monitor.csv
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
@@ -107,10 +107,10 @@ env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blockin
 policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
                    act_fun=tf.nn.elu) # we use the elu activation function
 
-agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v21/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v25/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=200, callback=callback)
-results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA_V2_1")
+a = agent.learn(total_timesteps=200000, callback=callback)
+results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA_V2_5")
 
 
 mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
