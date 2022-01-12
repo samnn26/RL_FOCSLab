@@ -97,7 +97,7 @@ env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=10, # value is not set as in the paper to achieve comparable reward values
                 episode_length=50, node_request_probabilities=node_request_probabilities, exp_request_res=25e9,
-                exp_request_lambda=1, term_on_first_block=True)
+                exp_request_lambda=1, term_on_first_block=False)
 
 # Create log dir
 today = datetime.today().strftime('%Y-%m-%d')
@@ -134,14 +134,14 @@ if continue_training:  # we need the DummyVecEnv to resume training, this is jus
     print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
 else:
-    env = gym.make('RWAFOCS-v22', **env_args)
+    env = gym.make('RWAFOCS-v23', **env_args)
     env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
     net_arch = 2*[64]  # default for MlpPolicy
     policy_args = dict(net_arch=net_arch)
 
     agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-    a = agent.learn(total_timesteps=1000, callback=callback)
+    a = agent.learn(total_timesteps=2000, callback=callback)
     results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
     pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
 

@@ -36,6 +36,11 @@ register(
 )
 
 register(
+    id='RWAFOCS-v23',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_3',
+)
+
+register(
     id='RWAFOCS-v3',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV3',
 )

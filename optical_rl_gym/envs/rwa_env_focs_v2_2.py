@@ -407,7 +407,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
                         lp_status += self.get_one_hot(2,3)
                     else:
                         lp_status += self.get_one_hot(0,3)
-            
+
             return self.get_one_hot(self.service.source_id-1,14) + self.get_one_hot(self.service.destination_id-1,14) + lp_status
             #return [self.service.source_id,self.service.destination_id] + lp_status
         # capacities = []
