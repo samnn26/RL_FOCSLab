@@ -16,11 +16,14 @@ tf.__version__ # printint out tensorflow version used
 import stable_baselines
 from stable_baselines.common.callbacks import BaseCallback
 from stable_baselines.results_plotter import load_results, ts2xy
+
 from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
+
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines import results_plotter
 from stable_baselines.common.evaluation import evaluate_policy
+#stable_baselines.__version__ # printing out stable_baselines version used
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
@@ -108,6 +111,7 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
                    act_fun=tf.nn.elu) # we use the elu activation function
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v21/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+
 
 a = agent.learn(total_timesteps=200, callback=callback)
 results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA_V2_1")

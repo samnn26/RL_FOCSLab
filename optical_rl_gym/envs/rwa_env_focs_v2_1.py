@@ -445,13 +445,15 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
 
     def initialise_nsr(self):
         for id, lnk in enumerate(self.topology.edges()):
-            self.topology[lnk[0]][lnk[1]]['nsr'] = 0.
+            link_length = self.topology[lnk[0]][lnk[1]]['length']
+            wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, 1)  # call per link
+            self.topology[lnk[0]][lnk[1]]['nsr'] = wavelen_nsr#NSR if all the lightpaths are switched on one channel
 
 
     def increase_nsr(self,path,wavelength):
         for i in range(len(path.node_list) - 1):
             link_length = self.topology[path.node_list[i]][path.node_list[i + 1]]['length']
-            wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, wavelength)
+            wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, wavelength)# call per link
             link_nsr = self.topology[path.node_list[i]][path.node_list[i + 1]]['nsr']
             #print("for link ", self.topology[path.node_list[i]][path.node_list[i + 1]]['id'], " nsr is ", link_nsr)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['nsr'] = link_nsr + wavelen_nsr
