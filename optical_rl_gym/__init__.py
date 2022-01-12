@@ -29,20 +29,21 @@ register(
     id='RWAFOCS-v21',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_1',
 )
-
 register(
     id='RWAFOCS-v22',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_2',
 )
-
 register(
     id='RWAFOCS-v23',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_3',
 )
-
 register(
     id='RWAFOCS-v24',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_4',
+)
+register(
+    id='RWAFOCS-v25',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_5',
 )
 
 register(

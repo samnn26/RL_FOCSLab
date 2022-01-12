@@ -28,7 +28,8 @@ alpha_lin = np.log(db_to_lin(alpha_db))/2
 beta2 = (disp*(lam_op**2))/(2*np.pi*c_0) # dispersion coefficient at given wavelength [ps^2/km]
 l_eff = (1 - np.exp(-2*alpha_lin*l_sp))/(2*alpha_lin)  # effective length [km]
 l_effa = 1/(2*alpha_lin)  # the asymptotic effective length [km]
-#pch_lin = 1e-3*db_to_lin(pch_dbm)  # ^ [W]
+pch_dbm=-1
+pch_lin = 1e-3*db_to_lin(pch_dbm)  # ^ [W]
 bw_tot = (nch*rsym)/1e3 # total BW of Nyquist signal [THz]
 # g_wdm = (pch_lin*nch)/(bw_tot*1e12) # flat-top value of PSD of signal [W/Hz]
 nf_lin = db_to_lin(nf)
@@ -36,6 +37,14 @@ gain = alpha_db*l_sp
 gain_lin = db_to_lin(gain)
 alpha_neper = alpha_db/4.343 # alpha [Neper]
 
+def calculate_per_channel_nsr_for_link(link_length,wavelength):
+    n_sp = int(link_length / l_sp)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
+    #nsr = (eta_unif + sig_ase_sq)/pch_lin
+    snr = calculate_max_snr(sig_ase_sq,eta_unif)
+    nsr = 1/snr
+    return nsr
 
 def calculate_capacity(path_length):
     """ calculate total capacity across all channels of a path
