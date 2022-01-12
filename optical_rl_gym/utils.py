@@ -36,6 +36,7 @@ class Service:
         self.initial_slot = None
         self.accepted = False
         self.wavelength = None
+        self.new_lp = None
 
     def foobar(self):
         return "foobar"
@@ -109,43 +110,43 @@ class LightPath:
         self.channel_id = channel_id
         self.available_capacity = available_capacity
 
-class Network_NSR:
-    def __init__(self,link_nsrs):
-        self.link_nsrs = link_nsrs
-
-class Link_NSR:
-    def __init__(self,wavelegth_nsrs):
-        self.wavelength_NSRs = wavelegth_nsrs
-
-def initialise_worst_case_nsr(env,graph):
-    """method to initalise NSR considering worst case """
-    number_of_wavelengths=100
-    link_nsrs = list()
-    for edge in enumerate(graph.edges()):
-        link_length = edge.length
-        wavelength_nsrs = list()
-        for wavelength in range(number_of_wavelengths):
-            wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, wavelength)
-            wavelength_nsrs[wavelength] = wavelen_nsr
-            lnsr = Link_NSR(wavelength_nsrs)
-        link_nsrs[edge] = lnsr
-    env.nsrs = Network_NSR(link_nsrs)
-
-
-def add_wavelen_nsr(env,link_id,link_length,wavelen_id):
-    """method to be called when a new wavelength is been allocated for a new service"""
-    wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length,wavelen_id)
-    link_nsr = env.nsrs.link_nsrs
-    link_nsr = link_nsr + wavelen_nsr
-    env.topology.graph.nsrs[link_id] = link_nsr
-    #calculate the wavelengths given the light
-
-def remove_wavelen_nsr(env,link_id,link_length,wavelen_id):
-    """method to be called when an existing wavelength is been released - lightpath count for the wavelength becomes 0 using the wavelength"""
-    wavelen_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, wavelen_id)
-    link_nsr = env.link_NSRs[link_id]
-    link_nsr = link_nsr - wavelen_nsr
-    env.topology.graph.nsrs[link_id] = link_nsr
+# class network_nsr:
+#     def __init__(self,link_nsrs):
+#         self.link_nsrs = link_nsrs
+#
+# class link_nsr:
+#     def __init__(self,wavelegth_nsrs):
+#         self.wavelength_nsrs = wavelegth_nsrs
+#
+# def initialise_worst_case_nsr(env,graph):
+#     """method to initalise nsr considering worst case """
+#     number_of_wavelengths=100
+#     link_nsrs = list()
+#     for edge in enumerate(graph.edges()):
+#         link_length = edge.length
+#         wavelength_nsrs = list()
+#         for wavelength in range(number_of_wavelengths):
+#             wavelen_nsr = gn_model.calculate_per_channel_nsr_for_link(link_length, wavelength)
+#             wavelength_nsrs[wavelength] = wavelen_nsr
+#             lnsr = link_nsr(wavelength_nsrs)
+#         link_nsrs[edge] = lnsr
+#     env.nsrs = network_nsr(link_nsrs)
+#
+#
+# def add_wavelen_nsr(env,link_id,link_length,wavelen_id):
+#     """method to be called when a new wavelength is been allocated for a new service"""
+#     wavelen_nsr = gn_model.calculate_per_channel_nsr_for_link(link_length,wavelen_id)
+#     link_nsr = env.nsrs.link_nsrs
+#     link_nsr = link_nsr + wavelen_nsr
+#     env.topology.graph.nsrs[link_id] = link_nsr
+#     #calculate the wavelengths given the light
+#
+# def remove_wavelen_nsr(env,link_id,link_length,wavelen_id):
+#     """method to be called when an existing wavelength is been released - lightpath count for the wavelength becomes 0 using the wavelength"""
+#     wavelen_nsr = gn_model.calculate_per_channel_nsr_for_link(link_length, wavelen_id)
+#     link_nsr = env.link_nsrs[link_id]
+#     link_nsr = link_nsr - wavelen_nsr
+#     env.topology.graph.nsrs[link_id] = link_nsr
 
 
 
