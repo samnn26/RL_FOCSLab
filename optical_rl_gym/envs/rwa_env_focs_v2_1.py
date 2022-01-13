@@ -111,13 +111,12 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
         ligthpath.available_capacity = new_capacity
         #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
 
-    def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
+    def get_available_lightpath_capacity(self, path, channel_ind):
 
-        p = self.k_shortest_paths[source, dest][path_ind]
-        c = p.lightpaths[channel_ind]
-        c_bps = c.available_capacity*1e12
-        #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
-        return c_bps #converted to bps(from Tbps)
+        c = path.lightpaths[channel_ind]
+        c_bps = c.available_capacity * 1e12
+        # print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
+        return c_bps  # converted to bps(from Tbps)
 
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
@@ -136,12 +135,12 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
     def step(self, action: Sequence[int]):
 
         path, wavelength = action[0], action[1]
-        self.actions_output[path, wavelength] += 1
-        self.episode_actions_output[path, wavelength] += 1
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
             if self.is_lightpath_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
-            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
-            path, wavelength) > self.service.bit_rate:  # if path is free and has sufficient capacity
+            wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
+            self.service.destination][path], wavelength) >= self.service.bit_rate:
+                self.actions_output[path, wavelength] += 1
+                self.episode_actions_output[path, wavelength] += 1
                 self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
                 self.num_receivers[int(self.service.destination)-1] += 1
                 self.episode_num_transmitters[int(self.service.source)-1] += 1
@@ -160,8 +159,10 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                 self._add_release(self.service)
 
             elif self.does_lightpath_exist(self.k_shortest_paths[self.service.source, self.service.destination][path],
-            wavelength) and self.get_available_lightpath_capacity(self.service.source, self.service.destination,
-            path, wavelength) > self.service.bit_rate:
+            wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
+            self.service.destination][path], wavelength) >= self.service.bit_rate:
+                self.actions_output[path, wavelength] += 1
+                self.episode_actions_output[path, wavelength] += 1
                 self._provision_path(self.k_shortest_paths[self.service.source, self.service.destination][path], wavelength)
                 self.num_lightpaths_reused += 1
                 self.episode_num_lightpaths_reused += 1
@@ -200,7 +201,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
 
         return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
-    def reset(self, only_counters=True):
+    def reset(self, only_counters=False):
         # resetting counters for the episode
 
         self.episode_actions_output = np.zeros((self.k_paths + self.reject_action,

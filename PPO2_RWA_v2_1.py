@@ -86,18 +86,19 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-load = 1000
+load = 10000000
 
 # mean_service_holding_time=7.5,
+#current time = seed, clock time tie
 env_args = dict(topology=topology, seed=10,
-                allow_rejection=False, # the agent cannot proactively reject a request
-                mean_service_holding_time=17.5, # value is not set as in the paper to achieve comparable reward values
-                episode_length=50, node_request_probabilities=node_request_probabilities)
+                allow_rejection=False,load=load, # the agent cannot proactively reject a request
+                mean_service_holding_time=1000000, # value is not set as in the paper to achieve comparable reward values
+                episode_length=3000, node_request_probabilities=node_request_probabilities)
 # breakpoint()
 # Create log dir
 log_dir = "./tmp/RWAFOCS-ppo_v21/"
 os.makedirs(log_dir, exist_ok=True)
-callback = SaveOnBestTrainingRewardCallback(check_freq=50, log_dir=log_dir)
+callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
 #env = gym.make('DeepRMSA-v0', **env_args)
 env = gym.make('RWAFOCS-v21', **env_args)
@@ -113,8 +114,9 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v21/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
 
-a = agent.learn(total_timesteps=200, callback=callback)
-results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA_V2_1")
+#a = agent.learn(total_timesteps=10000, callback=callback)
+a = agent.learn(total_timesteps=10000000, callback=callback)
+results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_1")
 
 
 mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
@@ -128,6 +130,9 @@ mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
 
 
 print("Whole training process statistics:")
+results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_1")
+print('Total number of services:', env.services_processed)
+print('Total number of accepted services:', env.services_accepted)
 rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
 rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
 print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
