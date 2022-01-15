@@ -28,7 +28,8 @@ from stable_baselines3.common.evaluation import evaluate_policy
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+
 
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
@@ -75,96 +76,123 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
-def make_env():
+def make_env(env_args, log_dir):
     def maker():
         env = gym.make('RWAFOCS-v4', **env_args)
         env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
         return env
     return maker
 
-# loading the topology binary file containing the graph and the k-shortest paths
-current_directory = os.getcwd()
-# with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
-#     topology = pickle.load(f)
-# with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
-#     topology = pickle.load(f)
-# node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
-    topology = pickle.load(f)
-node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-       0.07607608, 0.12012012, 0.01901902, 0.16916917])
+def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
+    """
+    Utility function for multiprocessed env.
 
-load = int(1e10)
-env_args = dict(topology=topology, seed=10, load = load,
-                allow_rejection=False, # the agent cannot proactively reject a request
-                mean_service_holding_time=1e8, # value is not set as in the paper to achieve comparable reward values
-                episode_length=1500, node_request_probabilities=node_request_probabilities,
-                exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False, num_spectrum_resources=100)
+    :param env_id: (str) the environment ID
+    :param num_env: (int) the number of environments you wish to have in subprocesses
+    :param seed: (int) the inital seed for RNG
+    :param rank: (int) index of the subprocess
+    """
+    def _init():
+        env = gym.make(env_id, **env_args)
+        env = Monitor(env, log_dirs[rank] + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
+        env.seed(seed + rank)
+        return env
+    #set_global_seeds(seed)
+    return _init
 
-# Create log dir
-today = datetime.today().strftime('%Y-%m-%d')
-exp_num = "_testsb3"
-log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
+def main():
+    # loading the topology binary file containing the graph and the k-shortest paths
+    current_directory = os.getcwd()
+    # with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+    #     topology = pickle.load(f)
+    # with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
+    #     topology = pickle.load(f)
+    # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
+    with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+        topology = pickle.load(f)
+    node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+           0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+           0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-os.makedirs(log_dir, exist_ok=True)
-callback = SaveOnBestTrainingRewardCallback(check_freq=3000, log_dir=log_dir)
+    load = int(1e10)
+    env_args = dict(topology=topology, seed=10, load = load,
+                    allow_rejection=False, # the agent cannot proactively reject a request
+                    mean_service_holding_time=1e8, # value is not set as in the paper to achieve comparable reward values
+                    episode_length=1600, node_request_probabilities=node_request_probabilities,
+                    exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False, num_spectrum_resources=100)
 
-continue_training = False
+    # Create log dir
+    today = datetime.today().strftime('%Y-%m-%d')
+    exp_num = "_maskedppomulproc"
+    continue_training = False
+    number_of_cores = 2
 
-if continue_training:  # we need the DummyVecEnv to resume training, this is just an implementation issue
-    env = DummyVecEnv([make_env()])
-    model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
-    agent = PPO.load(model_dir+'/best_model')
-    agent.set_env(env)
-    a = agent.learn(total_timesteps=int(2e6), callback=callback)
-    pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
-    env_print = env.envs[0] # get environment from DummyVecEnv
-    print("Whole training process statistics:")
-    rnd_path_action_probability = np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output)
-    rnd_wavelength_action_probability = np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output)
-    print('Path action probability:', np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output))
-    print('Wavelength action probability:', np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output))
-    print('Load (Erlangs):', load)
-    print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
-    print('Total number of services:', env_print.services_processed)
-    print('Total number of accepted services:', env_print.services_accepted)
-    print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
-    print('Number of services on existing lightpaths:', env_print.num_lightpaths_reused)
-    print('Number of services released:', env_print.num_lightpaths_released)
-    print('Number of transmitters on each node:', env_print.num_transmitters)
-    print('Number of receivers on each node:', env_print.num_receivers)
-    print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
+    if continue_training:
+        env = DummyVecEnv([make_env()])
+        model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
+        agent = PPO.load(model_dir+'/best_model')
+        agent.set_env(env)
+        a = agent.learn(total_timesteps=int(2e6), callback=callback)
+        pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
+        env_print = env.envs[0] # get environment from DummyVecEnv
+        print("Whole training process statistics:")
+        rnd_path_action_probability = np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output)
+        rnd_wavelength_action_probability = np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output)
+        print('Path action probability:', np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output))
+        print('Wavelength action probability:', np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output))
+        print('Load (Erlangs):', load)
+        print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
+        print('Total number of services:', env_print.services_processed)
+        print('Total number of accepted services:', env_print.services_accepted)
+        print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
+        print('Number of services on existing lightpaths:', env_print.num_lightpaths_reused)
+        print('Number of services released:', env_print.num_lightpaths_released)
+        print('Number of transmitters on each node:', env_print.num_transmitters)
+        print('Number of receivers on each node:', env_print.num_receivers)
+        print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
-else:
-    env = DummyVecEnv([make_env()])
-    #env = gym.make('RWAFOCS-v4', **env_args)
-    # env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
-    net_arch = 2*[64]  # default for MlpPolicy
-    policy_args = dict(net_arch=net_arch) # we use the elu activation function
+    else:
+        if number_of_cores == 1:
+            log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
+            os.makedirs(log_dir, exist_ok=True)
+            callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
+            env = DummyVecEnv([make_env(env_args, log_dir)])
+            net_arch = 2*[64]  # default for MlpPolicy
+            policy_args = dict(net_arch=net_arch) # we use the elu activation function
+            # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            a = agent.learn(total_timesteps=1000, callback=callback)
+            #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+            pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
+            env_print = env.envs[0]
+            print("Whole training process statistics:")
+            #rnd_lightpath_action_probability = env_print.actions_output / env_print.services_processed
+            print('Lightpath action probability:', env_print.actions_output / env_print.services_processed)
 
-    # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
-    agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
-    # breakpoint()
-    a = agent.learn(total_timesteps=6000, callback=callback)
-    #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
-    pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
-    env_print = env.envs[0]
-    print("Whole training process statistics:")
-    #rnd_lightpath_action_probability = env_print.actions_output / env_print.services_processed
-    print('Lightpath action probability:', env_print.actions_output / env_print.services_processed)
-
-    num_lps_reused = env_print.num_lightpaths_reused
-    print('Load (Erlangs):', load)
-    print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
-    print('Total number of services:', env_print.services_processed)
-    print('Total number of accepted services:', env_print.services_accepted)
-    print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
-    print('Number of services on existing lightpaths:', num_lps_reused)
-    print('Number of services released:', env_print.num_lightpaths_released)
-    print('Number of transmitters on each node:', env_print.num_transmitters)
-    print('Number of receivers on each node:', env_print.num_receivers)
-    print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
-    print('Episode number of no valid state events:', env_print.episode_no_valid_actions)
-    print('Number of no valid state events:', env_print.no_valid_actions)
-    breakpoint()
+            num_lps_reused = env_print.num_lightpaths_reused
+            print('Load (Erlangs):', load)
+            print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
+            print('Total number of services:', env_print.services_processed)
+            print('Total number of accepted services:', env_print.services_accepted)
+            print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
+            print('Number of services on existing lightpaths:', num_lps_reused)
+            print('Number of services released:', env_print.num_lightpaths_released)
+            print('Number of transmitters on each node:', env_print.num_transmitters)
+            print('Number of receivers on each node:', env_print.num_receivers)
+            print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
+            print('Episode number of no valid state events:', env_print.episode_no_valid_actions)
+            print('Number of no valid state events:', env_print.no_valid_actions)
+        else:
+            log_dirs = []
+            for i in range(number_of_cores):
+                log_dirs.append("./tmp/RWAFOCS-ppo/"+today+exp_num+"/_core_"+str(i)+"/")
+                os.makedirs("./tmp/RWAFOCS-ppo/"+today+exp_num+"/_core_"+str(i)+"/", exist_ok=True)
+            callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dirs[0])
+            pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
+            env = SubprocVecEnv([make_env_multiproc('RWAFOCS-v4', i, env_args, log_dirs) for i in range(number_of_cores)])
+            net_arch = 2*[64]  # default for MlpPolicy
+            policy_args = dict(net_arch=net_arch)
+            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            a = agent.learn(total_timesteps=2000, callback=callback)
+if __name__ == '__main__':
+    main()

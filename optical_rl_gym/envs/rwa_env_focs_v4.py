@@ -104,7 +104,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         self._new_service = False
         if reset:
             self.reset(only_counters=False)
-        # self.initialise_lightpath_capacities()
+        # self.initialise_lightpath_capacities()  # don't need to initialise here, we initialise in reset()
 
     """
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
@@ -440,7 +440,8 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
             else: # make a random choice if are are no valid actions
                 self.no_valid_actions += 1
                 self.episode_no_valid_actions += 1
-                # breakpoint()
+                # this probably isn't a good idea - having a random action may harm training
+                # should make it so that the state is skipped entirely in this situation...
                 lp_classes[self.rng.choice(np.arange(len(lp_classes)))] = 1
                 return [i != 0 for i in lp_classes]
 
