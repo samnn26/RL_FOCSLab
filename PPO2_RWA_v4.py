@@ -79,7 +79,9 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 def make_env(env_args, log_dir):
     def maker():
         env = gym.make('RWAFOCS-v4', **env_args)
-        env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
+        env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
+        'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
+        'episode_cum_services_processed', 'throughput'))
         return env
     return maker
 
@@ -94,7 +96,9 @@ def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
     """
     def _init():
         env = gym.make(env_id, **env_args)
-        env = Monitor(env, log_dirs[rank] + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate', 'throughput'))
+        env = Monitor(env, log_dirs[rank] + 'training', info_keywords=('episode_services_accepted',
+        'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
+        'episode_cum_services_processed', 'throughput'))
         env.seed(seed + rank)
         return env
     #set_global_seeds(seed)

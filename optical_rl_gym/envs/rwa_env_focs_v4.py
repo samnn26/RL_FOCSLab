@@ -44,6 +44,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
+
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.term_on_first_block = term_on_first_block # whether or not to terminate episode rewards after first blocking
@@ -178,6 +179,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         # print("source" + str(self.service.source))
         # print("destination" + str(self.service.destination))
         # if not self.action_masks()[action]:
+        #     print("Invalid action!")
         #     raise ValueError('Agent chose invalid action!')
         path = int(np.floor(action / self.num_spectrum_resources))
         wavelength = action - int(np.floor(action / self.num_spectrum_resources))*self.num_spectrum_resources
@@ -198,6 +200,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
 
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -214,6 +217,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
                 self.service.new_lp = False
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -234,6 +238,7 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
 
         self.services_processed += 1
         self.episode_services_processed += 1
+        self.episode_cum_services_processed.append(self.episode_services_processed)
 
         self.topology.graph['services'].append(self.service)
 
@@ -241,8 +246,12 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         reward = self.reward()
 
         info = {
-            'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
-            'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
+            'services_processed': self.services_processed,
+            'episode_services_processed': self.episode_services_processed,
+            'episode_cum_services_processed': self.episode_cum_services_processed,
+            'services_accepted': self.services_accepted,
+            'episode_services_accepted': self.episode_services_accepted,
+            'episode_cum_services_accepted': self.episode_cum_services_accepted,
             'lightpath_action_output_probability': np.sum(self.actions_output) / self.services_processed,
             'lightpath_action_taken_probability': np.sum(self.actions_taken) / self.services_processed,
             'throughput': self.get_throughput()
@@ -251,7 +260,6 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         self._new_service = False
         current_service_accepted = self.service.accepted # save the old service before calling _next_service
         self._next_service()
-
         if self.term_on_first_block:
             if not current_service_accepted:
                 return self.observation(), reward, True, info
@@ -271,6 +279,8 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
         self.episode_actions_taken = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_services_processed = 0
         self.episode_services_accepted = 0
+        self.episode_cum_services_processed = []
+        self.episode_cum_services_accepted = []
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes())
         self.episode_num_receivers = np.zeros(self.topology.number_of_nodes())
         self.episode_num_lightpaths_reused = 0
@@ -438,11 +448,12 @@ class RWAEnvFOCSV4(OpticalNetworkEnv):
             if sum(lp_classes) > 0: # at least one valid action
                 return [i != 0 for i in lp_classes]
             else: # make a random choice if are are no valid actions
+                # print("No valid action!")
                 self.no_valid_actions += 1
                 self.episode_no_valid_actions += 1
                 # this probably isn't a good idea - having a random action may harm training
                 # should make it so that the state is skipped entirely in this situation...
-                lp_classes[self.rng.choice(np.arange(len(lp_classes)))] = 1
+                #lp_classes[self.rng.choice(np.arange(len(lp_classes)))] = 1
                 return [i != 0 for i in lp_classes]
 
 

@@ -371,6 +371,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
                                arrival_time=at, holding_time=ht, bit_rate = request_bitrate, number_slots=1)
         self._new_service = True
 
+    def action_masks(self):  # as a reference to test vs new environment and MaskedPPO
+        return [True]*105
 
     def observation(self):
 
