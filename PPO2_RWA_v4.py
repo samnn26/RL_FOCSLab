@@ -24,7 +24,6 @@ from sb3_contrib import MaskablePPO
 from stable_baselines3.common.monitor import Monitor
 #from stable_baselines3.common.policies import MlpPolicy
 from stable_baselines3.common import results_plotter
-from stable_baselines3.common.evaluation import evaluate_policy
 #stable_baselines.__version__ # printing out stable_baselines version used
 import gym
 import pickle
@@ -76,9 +75,9 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
         return True
 
-def make_env(env_args, log_dir):
+def make_env(env_id, env_args, log_dir):
     def maker():
-        env = gym.make('RWAFOCS-v4', **env_args)
+        env = gym.make(env_id, **env_args)
         env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
         'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
         'episode_cum_services_processed', 'throughput'))
@@ -127,9 +126,9 @@ def main():
 
     # Create log dir
     today = datetime.today().strftime('%Y-%m-%d')
-    exp_num = "_maskedppomulproc"
+    exp_num = "_dictobstest"
     continue_training = False
-    number_of_cores = 2
+    number_of_cores = 1
 
     if continue_training:
         env = DummyVecEnv([make_env()])
@@ -160,11 +159,12 @@ def main():
             log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
             os.makedirs(log_dir, exist_ok=True)
             callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-            env = DummyVecEnv([make_env(env_args, log_dir)])
+            env = DummyVecEnv([make_env('RWAFOCS-v41', env_args, log_dir)])
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch) # we use the elu activation function
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
-            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            # agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=1000, callback=callback)
             #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
             pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))

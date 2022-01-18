@@ -154,12 +154,13 @@ env_args = dict(topology=topology, seed=10, load = load,
             exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False, num_spectrum_resources=100)
 
 number_of_cores = 2
-
+study_name = '1'
 def main():
     study = optuna.create_study()
     #study.optimize(optimize_agent, n_trials=1, n_jobs = number_of_cores)  # n_jobs = -1 will make it equal to CPU count
     with ThreadPoolExecutor(max_workers=number_of_cores) as executor:
         for _ in range(number_of_cores):
             executor.submit(study.optimize, optimize_agent, 1)
+    pickle.dump(study, open("optuna_results/study"+study_name+".pkl", 'wb'))
 if __name__ == '__main__':
     main()
