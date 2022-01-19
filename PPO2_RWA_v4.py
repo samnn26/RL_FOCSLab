@@ -128,8 +128,8 @@ def main():
     today = datetime.today().strftime('%Y-%m-%d')
     exp_num = "_dictobstest"
     continue_training = False
-    number_of_cores = 1
-
+    number_of_cores = 2
+    envID = 'RWAFOCS-v41'
     if continue_training:
         env = DummyVecEnv([make_env()])
         model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
@@ -159,9 +159,10 @@ def main():
             log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
             os.makedirs(log_dir, exist_ok=True)
             callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-            env = DummyVecEnv([make_env('RWAFOCS-v41', env_args, log_dir)])
+            env = DummyVecEnv([make_env(envID, env_args, log_dir)])
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch) # we use the elu activation function
+            print(envID)
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
@@ -193,10 +194,11 @@ def main():
                 os.makedirs("./tmp/RWAFOCS-ppo/"+today+exp_num+"/_core_"+str(i)+"/", exist_ok=True)
             callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dirs[0])
             pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
-            env = SubprocVecEnv([make_env_multiproc('RWAFOCS-v4', i, env_args, log_dirs) for i in range(number_of_cores)])
+            env = SubprocVecEnv([make_env_multiproc(envID, i, env_args, log_dirs) for i in range(number_of_cores)])
+            print(envID)
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch)
-            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=2000, callback=callback)
 if __name__ == '__main__':
     main()

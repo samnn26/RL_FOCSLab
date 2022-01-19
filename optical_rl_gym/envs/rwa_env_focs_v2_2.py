@@ -200,6 +200,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
 
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
@@ -216,6 +217,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
                 self.service.new_lp = False
                 self.actions_taken[path, wavelength] += 1
                 self.episode_actions_taken[path, wavelength] += 1
@@ -233,14 +235,18 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
 
         self.services_processed += 1
         self.episode_services_processed += 1
-
+        self.episode_cum_services_processed.append(self.episode_services_processed)
         self.topology.graph['services'].append(self.service)
 
 
         reward = self.reward()
         info = {
-            'service_blocking_rate': (self.services_processed - self.services_accepted) / self.services_processed,
-            'episode_service_blocking_rate': (self.episode_services_processed - self.episode_services_accepted) / self.episode_services_processed,
+            'services_processed': self.services_processed,
+            'episode_services_processed': self.episode_services_processed,
+            'episode_cum_services_processed': self.episode_cum_services_processed,
+            'services_accepted': self.services_accepted,
+            'episode_services_accepted': self.episode_services_accepted,
+            'episode_cum_services_accepted': self.episode_cum_services_accepted,
             'path_action_probability': np.sum(self.actions_output, axis=1) / np.sum(self.actions_output),
             'wavelength_action_probability': np.sum(self.actions_output, axis=0) / np.sum(self.actions_output),
             'throughput': self.get_throughput()
@@ -275,6 +281,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.episode_num_receivers = np.zeros(self.topology.number_of_nodes())
         self.episode_num_lightpaths_reused = 0
         self.episode_num_lightpaths_released = 0
+        self.episode_cum_services_processed = []
+        self.episode_cum_services_accepted = []
         if only_counters:
             return self.observation()
 
