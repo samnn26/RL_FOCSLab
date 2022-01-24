@@ -86,13 +86,14 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-load = 10000000
+load = 10e7
 
 # mean_service_holding_time=7.5,
 #current time = seed, clock time tie
+
 env_args = dict(topology=topology, seed=10,
                 allow_rejection=False,load=load, # the agent cannot proactively reject a request
-                mean_service_holding_time=1000000, # value is not set as in the paper to achieve comparable reward values
+                mean_service_holding_time=10e5, # value is not set as in the paper to achieve comparable reward values
                 episode_length=3000, node_request_probabilities=node_request_probabilities)
 # breakpoint()
 # Create log dir
@@ -108,14 +109,14 @@ env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blockin
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
 
 # here goes the arguments of the policy network to be used
-policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
+policy_args = dict(net_arch=2*[64], # the neural network has five layers with 128 neurons each
                    act_fun=tf.nn.elu) # we use the elu activation function
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v21/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
 
 #a = agent.learn(total_timesteps=10000, callback=callback)
-a = agent.learn(total_timesteps=10000000, callback=callback)
+a = agent.learn(total_timesteps=3000000, callback=callback)
 results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_1")
 
 

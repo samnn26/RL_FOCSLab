@@ -26,7 +26,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True):
+                 seed=None, reset=True,term_on_first_block=False):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -35,7 +35,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                          node_request_probabilities=node_request_probabilities,
                          seed=seed,
                          k_paths=k_paths)
-
+        self.term_on_first_block = term_on_first_block
         # vector that stores the service IDs for which the wavelengths are allocated to
         """
         for now spectrum_wavelengths_allocation is removed - if we want to track this we need to
@@ -75,7 +75,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
 
         shape = 1 + 2 * self.topology.number_of_nodes() + self.topology.number_of_edges() #bit rate, src, dest, NSR on edges
         self.initialise_nsr()
-        self.observation_space = gym.spaces.Box(low=0.0, high=1.0, dtype=np.float32, shape=(shape,))
+        self.observation_space = gym.spaces.Box(low=0.0, high=100, dtype=np.float32, shape=(shape,))
 
 
         #nodes = self.topology.number_of_nodes()
@@ -131,6 +131,9 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
+                            
+    def snr_constraint_satisfied(self, path):#this method check whether the path satisfies the SNR constraint
+        return True
 
     def step(self, action: Sequence[int]):
 
@@ -138,7 +141,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
         if path < self.k_paths and wavelength < self.num_spectrum_resources:  # if the indices are within the bounds
             if self.is_lightpath_free(self.k_shortest_paths[self.service.source, self.service.destination][path],
             wavelength) and self.get_available_lightpath_capacity(self.k_shortest_paths[self.service.source,
-            self.service.destination][path], wavelength) >= self.service.bit_rate:
+            self.service.destination][path], wavelength) >= self.service.bit_rate and self.snr_constraint_satisfied(path):
                 self.actions_output[path, wavelength] += 1
                 self.episode_actions_output[path, wavelength] += 1
                 self.num_transmitters[int(self.service.source)-1] += 1  # only for new lightpaths do we need to count these
@@ -197,9 +200,16 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
         }
 
         self._new_service = False
+        current_service_accepted = self.service.accepted  # save the old service before calling _next_service
         self._next_service()
 
-        return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        if self.term_on_first_block:
+            if not current_service_accepted:
+                return self.observation(), reward, True, info
+            else:
+                return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        else:
+            return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
     def reset(self, only_counters=False):
         # resetting counters for the episode

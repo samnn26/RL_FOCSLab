@@ -13,17 +13,20 @@ import logging
 logging.getLogger('tensorflow').setLevel(logging.FATAL)
 
 tf.__version__ # printint out tensorflow version used
-import stable_baselines
-from stable_baselines.common.callbacks import BaseCallback
-from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines import PPO2
-from stable_baselines.bench import Monitor
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines import results_plotter
-from stable_baselines.common.evaluation import evaluate_policy
-#stable_baselines.__version__ # printing out stable_baselines version used
-import gym
+import stable_baselines3
+from stable_baselines3.common.callbacks import BaseCallback
+# from stable_baselines3.results_plotter import load_results, ts2xy
+from stable_baselines3.common.results_plotter import load_results, ts2xy
+#from stable_baselines3 import PPO
+from sb3_contrib import MaskablePPO
+# from stable_baselines3.bench import Monitor
+from stable_baselines3.common.monitor import Monitor
+#from stable_baselines3.common.policies import MlpPolicy
+from stable_baselines3.common import results_plotter
+from stable_baselines3.common.evaluation import evaluate_policy
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
+import gym
+
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
     Callback for saving a model (the check is done every ``check_freq`` steps)
@@ -94,25 +97,30 @@ env_args = dict(topology=topology, seed=10,
                 episode_length=3000, node_request_probabilities=node_request_probabilities,term_on_first_block=True)
 # breakpoint()
 # Create log dir
-log_dir = "./tmp/RWAFOCS-ppo_v25/"
+log_dir = "./tmp/RWAFOCS-ppo_v212/"
 os.makedirs(log_dir, exist_ok=True)
 callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
 
 #env = gym.make('DeepRMSA-v0', **env_args)
-env = gym.make('RWAFOCS-v25', **env_args)
+env = gym.make('RWAFOCS-v212', **env_args)
 # logs will be saved in log_dir/training.monitor.csv
 # in this case, on top of the usual monitored things, we also monitor service and bit rate blocking rates
 env = Monitor(env, log_dir + 'training', info_keywords=('episode_service_blocking_rate','service_blocking_rate'))
 # for more information about the monitor, check https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/bench/monitor.html#Monitor
 
 # here goes the arguments of the policy network to be used
-policy_args = dict(net_arch=3*[128], # the neural network has five layers with 128 neurons each
-                   act_fun=tf.nn.elu) # we use the elu activation function
+#policy_args = dict(net_arch=5*[128], # the neural network has five layers with 128 neurons each
+                   #act_fun=tf.nn.elu) # we use the elu activation function
 
-agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v25/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=2000000, callback=callback)
-results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_5")
+policy_args = dict(net_arch=2*[64])
+
+agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v212/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+
+
+#a = agent.learn(total_timesteps=10000, callback=callback)
+a = agent.learn(total_timesteps=1000000, callback=callback)
+results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_12")
 
 
 mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
@@ -126,6 +134,9 @@ mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)
 
 
 print("Whole training process statistics:")
+results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA_V2_12")
+print('Total number of services:', env.services_processed)
+print('Total number of accepted services:', env.services_accepted)
 rnd_path_action_probability = np.sum(env.actions_output, axis=1) / np.sum(env.actions_output)
 rnd_wavelength_action_probability = np.sum(env.actions_output, axis=0) / np.sum(env.actions_output)
 print('Path action probability:', np.sum(env.actions_output, axis=1) / np.sum(env.actions_output))
