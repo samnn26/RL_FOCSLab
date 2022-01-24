@@ -83,13 +83,18 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
-load = 1000
+
+#load = 1000000000,  episode=1500 , holding time=1000
+
+load = 10e7
 
 # mean_service_holding_time=7.5,
-env_args = dict(topology=topology, seed=10, load = load,
-                allow_rejection=False, # the agent cannot proactively reject a request
-                mean_service_holding_time=7.5, # value is not set as in the paper to achieve comparable reward values
-                episode_length=50, node_request_probabilities=node_request_probabilities)
+#current time = seed, clock time tie
+
+env_args = dict(topology=topology, seed=10,
+                allow_rejection=False,load=load, # the agent cannot proactively reject a request
+                mean_service_holding_time=10e5, # value is not set as in the paper to achieve comparable reward values
+                episode_length=3000, node_request_probabilities=node_request_probabilities,term_on_first_block=True)
 # breakpoint()
 # Create log dir
 log_dir = "./tmp/RWAFOCS-ppo/"
@@ -109,8 +114,8 @@ policy_args = dict(net_arch=5*[128], # the neural network has five layers with 1
 
 agent = PPO2(MlpPolicy, env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
 
-a = agent.learn(total_timesteps=1000, callback=callback)
-results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+a = agent.learn(total_timesteps=3000000, callback=callback)
+results_plotter.plot_results([log_dir], 1e7, results_plotter.X_TIMESTEPS, "RWA")
 
 
 mean_reward, std_reward = evaluate_policy(a, a.get_env(), n_eval_episodes=10)

@@ -26,7 +26,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True):
+                 seed=None, reset=True,term_on_first_block=False):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -35,7 +35,7 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
                          node_request_probabilities=node_request_probabilities,
                          seed=seed,
                          k_paths=k_paths)
-
+        self.term_on_first_block = term_on_first_block
         # vector that stores the service IDs for which the wavelengths are allocated to
         """
         for now spectrum_wavelengths_allocation is removed - if we want to track this we need to
@@ -185,11 +185,18 @@ class RWAEnvFOCSV1(OpticalNetworkEnv):
         }
 
         self._new_service = False
+        current_service_accepted = self.service.accepted  # save the old service before calling _next_service
         self._next_service()
 
-        return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        if self.term_on_first_block:
+            if not current_service_accepted:
+                return self.observation(), reward, True, info
+            else:
+                return self.observation(), reward, self.episode_services_processed == self.episode_length, info
+        else:
+            return self.observation(), reward, self.episode_services_processed == self.episode_length, info
 
-    def reset(self, only_counters=True):
+    def reset(self, only_counters=False):
         # resetting counters for the episode
         if only_counters:
             print("true")
