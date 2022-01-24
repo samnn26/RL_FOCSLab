@@ -76,7 +76,7 @@ model_dir = "./tmp/RWAFOCS-ppo/"+exp_id+"/_core_0/"
 eval_dir = model_dir + "eval_results/"
 os.makedirs(eval_dir, exist_ok=True)
 
-env_0 = gym.make('RWAFOCS-v4', **env_args)
+env_0 = gym.make('RWAFOCS-v41', **env_args)
 env_0 = Monitor(env_0, eval_dir + 'evaluation_rand', info_keywords=('episode_services_accepted',
 'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
 'episode_cum_services_processed', 'throughput'))
