@@ -53,7 +53,6 @@ register(
     id='RWAFOCS-v25',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_5',
 )
-
 register(
     id='RWAFOCS-v3',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV3',
@@ -67,6 +66,11 @@ register(
 register(
     id='RWAFOCS-v41',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_1',
+)
+
+register(
+    id='RWAFOCS-v5',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV5',
 )
 
 register(
