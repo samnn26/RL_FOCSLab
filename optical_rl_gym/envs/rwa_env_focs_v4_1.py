@@ -84,13 +84,15 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
         edge_lens = []
         for edge in self.topology.edges(data=True):
             edge_lens.append(edge[2]['length'])
-        max_len = max(edge_lens)
+        self.max_len = max(edge_lens)
+        #self.max_bit_rate = 10*self.exp_request_lambda*self.exp_request_res
         self.observation_space = gym.spaces.Dict(
             spaces = {
-            'utilisation':  gym.spaces.Box(0, 100, (self.topology.number_of_edges(),)),
-            'length':  gym.spaces.Box(0, max_len, (self.topology.number_of_edges(),)),
+            'utilisation':  gym.spaces.Box(0, 1, (self.topology.number_of_edges(),)),
+            'length':  gym.spaces.Box(0, 1, (self.topology.number_of_edges(),)),
             'source': gym.spaces.MultiBinary(14),
             'destination': gym.spaces.MultiBinary(14)
+            # 'bit_rate': gym.spaces.Box(0, max_bit_rate)
              }
         )
 
@@ -392,16 +394,18 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
             utilisation.append(edge[2]['utilization'])
             length.append(edge[2]['length'])
         utilisation = np.array(utilisation)
+        utilisation = utilisation / self.num_spectrum_resources
         length = np.array(length)
-
+        length = length / self.max_len
         numnodes = self.topology.number_of_nodes()
         return {'utilisation':  utilisation,
                 'length': length,
                 'source': np.array(self.get_one_hot(self.service.source_id, numnodes)),
                 'destination': np.array(self.get_one_hot(self.service.destination_id, numnodes))
+                # 'bit_rate': self.service.bit_rate
         }
 
-    
+
 
     def get_lightpath_classification(self, source, destination):
         lp_classes = []
