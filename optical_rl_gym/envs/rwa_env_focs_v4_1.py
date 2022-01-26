@@ -375,12 +375,12 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
                 self._add_release(service_to_release)  # puts service back in the queue
                 break  # breaks the look
         keep_generating = True
-        while keep_generating:
-            sample = self.rng_np.poisson(lam=self.exp_request_lambda)*self.exp_request_res
-            if sample > 0:  # only want to allow requests with non-zero bit rates
-                request_bitrate = sample
-                keep_generating = False
-
+        # while keep_generating:
+        #     sample = self.rng_np.poisson(lam=self.exp_request_lambda)*self.exp_request_res
+        #     if sample > 0:  # only want to allow requests with non-zero bit rates
+        #         request_bitrate = sample
+        #         keep_generating = False
+        request_bitrate = self.exp_request_res
         self.service = Service(self.episode_services_processed, src, src_id, destination=dst, destination_id=dst_id,
                                arrival_time=at, holding_time=ht, bit_rate = request_bitrate, number_slots=1)
         self._new_service = True
