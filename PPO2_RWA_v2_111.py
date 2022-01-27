@@ -122,14 +122,14 @@ def main():
                     allow_rejection=False, # the agent cannot proactively reject a request
                     mean_service_holding_time=1e8, # value is not set as in the paper to achieve comparable reward values
                     episode_length=1600, node_request_probabilities=node_request_probabilities,
-                    exp_request_res=100e9, exp_request_lambda=1, term_on_first_block=False, num_spectrum_resources=100)
+                    exp_request_res=100e9, term_on_first_block=True, num_spectrum_resources=100)
 
     # Create log dir
     today = datetime.today().strftime('%Y-%m-%d')
-    exp_num = "_v41normobstest"
+    exp_num = "_v211Jtest"
     continue_training = False
     number_of_cores = 1
-    envID = 'RWAFOCS-v41'
+    envID = 'RWAFOCS-v2111'
     if continue_training:
         env = DummyVecEnv([make_env()])
         model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
@@ -165,7 +165,7 @@ def main():
             print(envID)
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
-            agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=1000, callback=callback)
             #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
             pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
@@ -198,7 +198,7 @@ def main():
             print(envID)
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch)
-            agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=2000, callback=callback)
 if __name__ == '__main__':
     main()

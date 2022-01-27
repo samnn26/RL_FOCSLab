@@ -39,11 +39,12 @@ alpha_neper = alpha_db/4.343 # alpha [Neper/km]
 
 def calculate_per_channel_nsr_for_link(link_length,number_of_active_channels):
     n_sp = int(link_length / l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, 1)
+    # NOTE: eta should not be calculated for anything other than the full modulated bandwidth!!!
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     #nsr = (eta_unif + sig_ase_sq)/pch_lin
     snr = calculate_max_snr(sig_ase_sq,eta_unif)  # max snr per channel
-    nsr = 1/snr
+    nsr = 1/snr # minimum NSR per channel
     nsr = nsr*number_of_active_channels
     return nsr
 

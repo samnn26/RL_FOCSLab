@@ -374,7 +374,7 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
             else:  # release is not to be processed yet
                 self._add_release(service_to_release)  # puts service back in the queue
                 break  # breaks the look
-        keep_generating = True
+        #keep_generating = True
         # while keep_generating:
         #     sample = self.rng_np.poisson(lam=self.exp_request_lambda)*self.exp_request_res
         #     if sample > 0:  # only want to allow requests with non-zero bit rates
@@ -428,19 +428,8 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
         if self.reject_action == 1:
             return [i != 0 for i in lp_classes] + [True] # always possible to reject!
         else:
-            if sum(lp_classes) > 0: # at least one valid action
-                return [i != 0 for i in lp_classes]
-            else: # make a random choice if are are no valid actions
-                # print("No valid action!")
-                self.no_valid_actions += 1
-                self.episode_no_valid_actions += 1
-                # this probably isn't a good idea - having a random action may harm training
-                # should make it so that the state is skipped entirely in this situation...
-                #lp_classes[self.rng.choice(np.arange(len(lp_classes)))] = 1
-                return [i != 0 for i in lp_classes]
-
-
-
+            return [i != 0 for i in lp_classes]
+            
     def _provision_path(self, path: Path, wavelength: int):
 
         self.lightpath_service_allocation[path.path_id, wavelength] += 1
