@@ -20,6 +20,7 @@ alpha_db = 0.2 # loss [dB/km]
 disp = 16 # fibre dispersion [ps/nm/km]
 l_sp = 100 # span length [km]
 nch = 101 # number of channels
+nch_l_c = 50
 gamma = 1.3 # nonlinearity coefficient [/W/km]
 nf = 4.5 # EDFA noise figure [dB]
 n_span = 1 # number of spans
@@ -56,7 +57,7 @@ alpha_neper_lband = alpha_db_lband/4.343 # alpha [Neper]
 def calculate_per_channel_nsr_for_link_lband(link_length,number_of_active_channels):
     n_sp = int(link_length / l_sp)
     # NOTE: eta should not be calculated for anything other than the full modulated bandwidth!!!
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin_lband, nf_lin, f_op_lband, rsym)
     #nsr = (eta_unif + sig_ase_sq)/pch_lin
     snr = calculate_max_snr(sig_ase_sq,eta_unif)  # max snr per channel
@@ -68,7 +69,7 @@ def calculate_capacity_lband(path_length):
     """ calculate total capacity across all channels of a path
     """
     n_sp = int(path_length/l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin_lband, nf_lin, f_op_lband, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
@@ -78,7 +79,7 @@ def calculate_lightpath_capacity_lband(path_length, wavelength):
     calculate capacity of a lightpath - currently wavelength argument does nothing - can be used to do wavelength-dependence
     """
     n_sp = int(path_length/l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin_lband, nf_lin, f_op_lband, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
@@ -109,7 +110,7 @@ def calculate_max_snr_lband(sig_ase, eta_unif_lband):
 def calculate_per_channel_nsr_for_link(link_length,number_of_active_channels):
     n_sp = int(link_length / l_sp)
     # NOTE: eta should not be calculated for anything other than the full modulated bandwidth!!!
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     #nsr = (eta_unif + sig_ase_sq)/pch_lin
     snr = calculate_max_snr(sig_ase_sq,eta_unif)  # max snr per channel
@@ -121,7 +122,7 @@ def calculate_capacity(path_length):
     """ calculate total capacity across all channels of a path
     """
     n_sp = int(path_length/l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
@@ -131,7 +132,7 @@ def calculate_lightpath_capacity(path_length, wavelength):
     calculate capacity of a lightpath - currently wavelength argument does nothing - can be used to do wavelength-dependence
     """
     n_sp = int(path_length/l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch_l_c)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     capacity = calculate_throughput(rsym, sig_ase_sq, eta_unif)
     return capacity
