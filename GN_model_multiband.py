@@ -53,13 +53,15 @@ gain_lband = alpha_db_lband*l_sp
 gain_lin_lband = db_to_lin(gain_lband)
 alpha_neper_lband = alpha_db_lband/4.343 # alpha [Neper]
 
-def calculate_per_channel_nsr_for_link_lband(link_length,wavelength):
+def calculate_per_channel_nsr_for_link_lband(link_length,number_of_active_channels):
     n_sp = int(link_length / l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, 1)
+    # NOTE: eta should not be calculated for anything other than the full modulated bandwidth!!!
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma_lband, l_eff_lband, beta2_lband, rsym, alpha_neper_lband, nch)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin_lband, nf_lin, f_op_lband, rsym)
     #nsr = (eta_unif + sig_ase_sq)/pch_lin
-    snr = calculate_max_snr(sig_ase_sq,eta_unif)
-    nsr = 1/snr
+    snr = calculate_max_snr(sig_ase_sq,eta_unif)  # max snr per channel
+    nsr = 1/snr # minimum NSR per channel
+    nsr = nsr*number_of_active_channels
     return nsr
 
 def calculate_capacity_lband(path_length):
@@ -104,13 +106,15 @@ def calculate_max_snr_lband(sig_ase, eta_unif_lband):
     '''
     return (1/3) * ( (4 / (sig_ase**2 * eta_unif_lband))**(1/3) )
 
-def calculate_per_channel_nsr_for_link(link_length,wavelength):
+def calculate_per_channel_nsr_for_link(link_length,number_of_active_channels):
     n_sp = int(link_length / l_sp)
-    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, 1)
+    # NOTE: eta should not be calculated for anything other than the full modulated bandwidth!!!
+    eta_unif = calculate_etaunif_nikita(n_sp, gamma, l_eff, beta2, rsym, alpha_neper, nch)
     sig_ase_sq = calculate_sig_ase_nikita(n_sp, gain_lin, nf_lin, f_op, rsym)
     #nsr = (eta_unif + sig_ase_sq)/pch_lin
-    snr = calculate_max_snr(sig_ase_sq,eta_unif)
-    nsr = 1/snr
+    snr = calculate_max_snr(sig_ase_sq,eta_unif)  # max snr per channel
+    nsr = 1/snr # minimum NSR per channel
+    nsr = nsr*number_of_active_channels
     return nsr
 
 def calculate_capacity(path_length):
