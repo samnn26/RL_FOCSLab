@@ -131,9 +131,12 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
-                            
+
     def snr_constraint_satisfied(self, path):#this method check whether the path satisfies the SNR constraint
         return True
+
+    def reward(self):  # overwrite reward function
+        return 1 if self.service.accepted else -1
 
     def step(self, action: Sequence[int]):
 

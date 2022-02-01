@@ -136,6 +136,10 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
+
+    def reward(self):  # overwrite reward function
+        return 1 if self.service.accepted else -1
+
     def get_throughput(self):
         return np.sum(self.active_bitrates)
 
