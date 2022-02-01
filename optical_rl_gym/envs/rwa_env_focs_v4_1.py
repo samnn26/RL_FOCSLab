@@ -429,7 +429,7 @@ class RWAEnvFOCSV4_1(OpticalNetworkEnv):
             return [i != 0 for i in lp_classes] + [True] # always possible to reject!
         else:
             return [i != 0 for i in lp_classes]
-            
+
     def _provision_path(self, path: Path, wavelength: int):
 
         self.lightpath_service_allocation[path.path_id, wavelength] += 1

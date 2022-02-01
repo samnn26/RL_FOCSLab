@@ -111,7 +111,7 @@ def main():
     # with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
     #     topology = pickle.load(f)
     # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-    with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+    with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
         topology = pickle.load(f)
     node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
            0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
@@ -126,33 +126,40 @@ def main():
 
     # Create log dir
     today = datetime.today().strftime('%Y-%m-%d')
-    exp_num = "_v41normobstest"
+    exp_num = "_v41learnconttest"
     continue_training = False
     number_of_cores = 1
-    envID = 'RWAFOCS-v41'
+    envID = 'RWAFOCS-v42'
     if continue_training:
-        env = DummyVecEnv([make_env()])
-        model_dir = "./tmp/RWAFOCS-ppo/2022-01-05_0"
-        agent = PPO.load(model_dir+'/best_model')
+        log_dirs = []
+        for i in range(number_of_cores):
+            log_dirs.append("./tmp/RWAFOCS-ppo/"+today+exp_num+"/_core_"+str(i)+"/")
+            os.makedirs("./tmp/RWAFOCS-ppo/"+today+exp_num+"/_core_"+str(i)+"/", exist_ok=True)
+        callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dirs[0])
+        pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
+        env = SubprocVecEnv([make_env_multiproc(envID, i, env_args, log_dirs) for i in range(number_of_cores)])
+        # env = DummyVecEnv([make_env()])
+        model_dir = "./tmp/RWAFOCS-ppo/2022-01-31v41f25Gexpbid/_core_0"
+        agent = MaskablePPO.load(model_dir+'/best_model')
         agent.set_env(env)
-        a = agent.learn(total_timesteps=int(2e6), callback=callback)
+        a = agent.learn(total_timesteps=int(1000), callback=callback)
         pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
-        env_print = env.envs[0] # get environment from DummyVecEnv
-        print("Whole training process statistics:")
-        rnd_path_action_probability = np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output)
-        rnd_wavelength_action_probability = np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output)
-        print('Path action probability:', np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output))
-        print('Wavelength action probability:', np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output))
-        print('Load (Erlangs):', load)
-        print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
-        print('Total number of services:', env_print.services_processed)
-        print('Total number of accepted services:', env_print.services_accepted)
-        print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
-        print('Number of services on existing lightpaths:', env_print.num_lightpaths_reused)
-        print('Number of services released:', env_print.num_lightpaths_released)
-        print('Number of transmitters on each node:', env_print.num_transmitters)
-        print('Number of receivers on each node:', env_print.num_receivers)
-        print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
+        # env_print = env.envs[0] # get environment from DummyVecEnv
+        # print("Whole training process statistics:")
+        # rnd_path_action_probability = np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output)
+        # rnd_wavelength_action_probability = np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output)
+        # print('Path action probability:', np.sum(env_print.actions_output, axis=1) / np.sum(env_print.actions_output))
+        # print('Wavelength action probability:', np.sum(env_print.actions_output, axis=0) / np.sum(env_print.actions_output))
+        # print('Load (Erlangs):', load)
+        # print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
+        # print('Total number of services:', env_print.services_processed)
+        # print('Total number of accepted services:', env_print.services_accepted)
+        # print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
+        # print('Number of services on existing lightpaths:', env_print.num_lightpaths_reused)
+        # print('Number of services released:', env_print.num_lightpaths_released)
+        # print('Number of transmitters on each node:', env_print.num_transmitters)
+        # print('Number of receivers on each node:', env_print.num_receivers)
+        # print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
 
     else:
         if number_of_cores == 1:
