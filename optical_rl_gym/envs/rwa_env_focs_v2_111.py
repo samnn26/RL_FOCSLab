@@ -134,10 +134,6 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
-
-    def reward(self):  # overwrite reward function
-        return 1 if self.service.accepted else -1
-
     def get_throughput(self):
         return np.sum(self.active_bitrates)
 
@@ -290,6 +286,8 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
         self._next_service()
         self.previous_source = self.service.source
         self.previous_destination = self.service.destination
+        self.wavelen_count_per_edge = np.zeros(self.topology.number_of_edges())
+
 
         return self.observation()
 
@@ -375,17 +373,19 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
 
     def _provision_path(self, path: Path, wavelength: int):
 
-        self.lightpath_service_allocation[path.path_id, wavelength] += 1
+
         self.active_bitrates[path.path_id, wavelength] += self.service.bit_rate
         self.cumulative_throughput.append(self.service.bit_rate)
         for i in range(len(path.node_list) - 1):
+            if not self.does_lightpath_exist(path, wavelength):#only need to increase wavelen counter when a new lighpath is established
+                    self.wavelen_count_per_edge[self.topology[path.node_list[i]][path.node_list[i + 1]]['index']] += 1
             self.topology.graph['available_wavelengths'][self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength] += 1
             # ind = next(x for x, val in enumerate(self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength]) if x != -1)
             # try:
             #     self.spectrum_wavelengths_allocation[self.topology[path.node_list[i]][path.node_list[i + 1]]['index'], wavelength][ind] = self.service.service_id  # add service id to first slot
             # except:
             #     raise ValueError("Ran out of service id slots, increase this value")
-
+            self.lightpath_service_allocation[path.path_id, wavelength] += 1
             self.topology[path.node_list[i]][path.node_list[i + 1]]['services'].append(self.service.service_id)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['service_wavelengths'].append(wavelength)
             self.topology[path.node_list[i]][path.node_list[i + 1]]['running_services'].append(self.service.service_id)
@@ -400,6 +400,7 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
         self._update_network_stats()
         self.service.route = path
 
+
     def _release_path(self, service: Service):
 
         self.num_lightpaths_released += 1
@@ -409,6 +410,9 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
             self.topology.graph['available_wavelengths'][
                 self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
                     'index'], service.wavelength] -= 1
+            if not self.does_lightpath_exist(service.route, service.wavelength):#if path has 0 services remove wavelength from active wavelenth count for the edges
+                self.wavelen_count_per_edge[self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
+                    'index']] -=1
             try:
                 ind_edge = self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
                     'running_services'].index(service.service_id)
@@ -427,45 +431,12 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
         # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
-        if service.new_lp:
+        if not self.does_lightpath_exist(service.route,service.wavelength):#lighpath's not used by any services
             self.num_transmitters[int(service.source) - 1] -= 1
             self.num_receivers[int(service.destination) - 1] -= 1
             self.episode_num_transmitters[int(service.source) - 1] -= 1
             self.episode_num_receivers[int(service.destination) - 1] -= 1
-
-    def _release_path(self, service: Service):
-
-        self.num_lightpaths_released += 1
-        self.lightpath_service_allocation[service.route.path_id, service.wavelength] -= 1
-        self.active_bitrates[service.route.path_id, service.wavelength] -= service.bit_rate
-        for i in range(len(service.route.node_list) - 1):
-            self.topology.graph['available_wavelengths'][
-                self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
-                    'index'], service.wavelength] -= 1
-            try:
-                ind_edge = self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
-                    'running_services'].index(service.service_id)
-                self.topology[service.route.node_list[i]][service.route.node_list[i + 1]]['running_services'].remove(
-                    service.service_id)
-                del self.topology[service.route.node_list[i]][service.route.node_list[i + 1]][
-                    'running_service_wavelengths'][ind_edge]
-            except:
-                self.logger.warning('error')
-            self._update_link_stats(service.route.node_list[i], service.route.node_list[i + 1])
-        try:
-            ind_top = self.topology.graph['running_services'].index(service.service_id)
-            self.topology.graph['running_services'].remove(service.service_id)
-            del self.topology.graph['running_service_wavelengths'][ind_top]
-        except:
-            self.logger.warning('error')
-        self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
-        # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
-        if service.new_lp:
-            self.num_transmitters[int(service.source) - 1] -= 1
-            self.num_receivers[int(service.destination) - 1] -= 1
-            self.episode_num_transmitters[int(service.source) - 1] -= 1
-            self.episode_num_receivers[int(service.destination) - 1] -= 1
-        self.update_nsr(service.route)
+            self.update_nsr(service.route)
 
     def _update_network_stats(self):
         """
@@ -540,7 +511,7 @@ class RWAEnvFOCSV2_111(OpticalNetworkEnv):
     def update_nsr(self,path):
         for i in range(len(path.node_list) - 1):
             link_length = self.topology[path.node_list[i]][path.node_list[i + 1]]['length']
-            num_wavelengths = np.sum(self.topology.graph['available_wavelengths'][self.topology[path.node_list[i]][path.node_list[i + 1]]['index'],:])
+            num_wavelengths = self.wavelen_count_per_edge[self.topology[path.node_list[i]][path.node_list[i + 1]]['index']]
             new_nsr = GN_model.calculate_per_channel_nsr_for_link(link_length, num_wavelengths)# call per link
             self.topology[path.node_list[i]][path.node_list[i + 1]]['nsr'] = new_nsr
 
