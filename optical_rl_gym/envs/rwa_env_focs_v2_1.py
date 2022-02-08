@@ -120,6 +120,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
         if reset:
             self.reset(only_counters=False)
         self.initialise_lightpath_capacities()
+
     """
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
     The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
@@ -543,11 +544,11 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
         # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
-        if service.new_lp:
-            self.num_transmitters[int(service.source)-1] -= 1
-            self.num_receivers[int(service.destination)-1] -= 1
-            self.episode_num_transmitters[int(service.source)-1] -= 1
-            self.episode_num_receivers[int(service.destination)-1] -= 1
+        if not self.does_lightpath_exist(service.route, service.wavelength):  # lighpath's not used by any services
+            self.num_transmitters[int(service.source) - 1] -= 1
+            self.num_receivers[int(service.destination) - 1] -= 1
+            self.episode_num_transmitters[int(service.source) - 1] -= 1
+            self.episode_num_receivers[int(service.destination) - 1] -= 1
             self.update_nsr(service.route)
 
     def _update_network_stats(self):
