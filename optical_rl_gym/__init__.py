@@ -37,6 +37,16 @@ register(
     id='RWAFOCS-v2111',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_111',
 )
+
+register(
+    id='RWAFOCS-v2112',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_112',
+)
+register(
+    id='RWAFOCS-v2113',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_113',
+)
+
 register(
     id='RWAFOCS-v212',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_12',
@@ -57,6 +67,20 @@ register(
     id='RWAFOCS-v25',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_5',
 )
+
+register(
+    id='RWAFOCS-v26',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_6',
+)
+
+register(
+    id='RWAFOCS-v27',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_7',
+)
+register(
+    id='RWAFOCS-v271',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV2_71',
+)
 register(
     id='RWAFOCS-v3',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV3',
@@ -76,7 +100,23 @@ register(
     id='RWAFOCS-v42',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_2',
 )
+register(
+    id='RWAFOCS-v43',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_3',
+)
+register(
+    id='RWAFOCS-v44',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_4',
+)
 
+register(
+    id='RWAFOCS-v45',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_5',
+)
+register(
+    id='RWAFOCS-v421',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV4_21',
+)
 register(
     id='RWAFOCS-v5',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV5',
