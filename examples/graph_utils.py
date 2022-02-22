@@ -70,8 +70,8 @@ def read_sndlib_topology(file):
 
 
 def read_txt_file(file):
-    # graph = nx.Graph()
-    graph = nx.DiGraph()
+    graph = nx.Graph()
+    #graph = nx.DiGraph()
     num_nodes = 0
     num_links = 0
     id_link = 0

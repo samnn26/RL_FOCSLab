@@ -33,7 +33,8 @@ def get_topology(file_name, topology_name, k_paths=2):
         for idn2, n2 in enumerate(topology.nodes()):
             # print(n1)
             # print(n2)
-            if idn1 != idn2:
+            #if idn1 != idn2:
+            if idn1 < idn2:    
                 paths = get_k_shortest_paths(topology, n1, n2, k_paths)
                 weights = [get_path_weight(topology, path) for path in paths]
                 lengths = [get_path_weight(topology, path, weight='length') for path in paths]
@@ -56,19 +57,23 @@ def get_topology(file_name, topology_name, k_paths=2):
     return topology
 
 
-k_paths = 5
+k_paths = 1
+# base_topology_name = 'nsfnet_chen.txt'
+base_topology_name = 'nsfnet_chen_rounded.txt'
 # base_topology_name = 'nsfnet_chen_directional.txt'
 # base_topology_name = '3_node_network_asym.txt'
 # base_topology_name = '3_node_network_asym.txt'
 # base_topology_name = 'dtag.txt'
-base_topology_name = 'gb.txt'
+# base_topology_name = 'gb.txt'
+# new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths.h5'
+new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_rounded.h5'
 # new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_directional.h5'
 # new_topology_name = '3_node_network_asym.h5'
 # new_topology_name = '3_node_network_sym.h5'
-# new_topology_name = 'dtag_'+str(k_paths)+'-paths_directional.h5'
-new_topology_name = 'gb_'+str(k_paths)+'-paths_directional.h5'
+# new_topology_name = 'dtag_'+str(k_paths)+'-paths.h5'
+# new_topology_name = 'gb_'+str(k_paths)+'-paths.h5'
 
-topology = get_topology('./topologies/'+base_topology_name, 'GB', k_paths=k_paths)
+topology = get_topology('./topologies/'+base_topology_name, 'NSFNETROUNDED', k_paths=k_paths)
 
 with open(f'./topologies/'+new_topology_name, 'wb') as f:
     pickle.dump(topology, f)

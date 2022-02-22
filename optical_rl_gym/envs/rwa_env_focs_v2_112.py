@@ -457,12 +457,12 @@ class RWAEnvFOCSV2_112(OpticalNetworkEnv):
             self.logger.warning('error')
         self.update_available_lightpath_capacity(service.route, service.wavelength, self.service.bit_rate, False)
         # self.lightpath_capacities[service.route.path_id,service.wavelength] += self.service.bit_rate
-        if service.new_lp:
+        if not self.does_lightpath_exist(service.route,service.wavelength):#lighpath's not used by any services
             self.num_transmitters[int(service.source) - 1] -= 1
             self.num_receivers[int(service.destination) - 1] -= 1
             self.episode_num_transmitters[int(service.source) - 1] -= 1
             self.episode_num_receivers[int(service.destination) - 1] -= 1
-        self.update_nsr(service.route)
+            self.update_nsr(service.route)
 
     def _update_network_stats(self):
         """

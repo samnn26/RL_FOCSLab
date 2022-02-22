@@ -20,6 +20,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 # from stable_baselines3.results_plotter import load_results, ts2xy
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 from sb3_contrib import MaskablePPO
+from stable_baselines3 import PPO
 # from stable_baselines3.bench import Monitor
 from stable_baselines3.common.monitor import Monitor
 #from stable_baselines3.common.policies import MlpPolicy
@@ -79,8 +80,7 @@ def make_env(env_id, env_args, log_dir):
     def maker():
         env = gym.make(env_id, **env_args)
         env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
-        'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
-        'episode_cum_services_processed', 'throughput'))
+        'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
         return env
     return maker
 
@@ -97,7 +97,7 @@ def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
         env = gym.make(env_id, **env_args)
         env = Monitor(env, log_dirs[rank] + 'training', info_keywords=('episode_services_accepted',
         'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
-        'episode_cum_services_processed', 'throughput'))
+        'episode_cum_services_processed', 'throughput', 'service_distribution'))
         env.seed(seed + rank)
         return env
     #set_global_seeds(seed)
@@ -111,7 +111,9 @@ def main():
     # with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
     #     topology = pickle.load(f)
     # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-    with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+    # with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+    # with open(f'/Users/joshnevin/RL_FOCSLab/topologies/dtag_5-paths.h5', 'rb') as f:
+    with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_rounded.h5', 'rb') as f:
         topology = pickle.load(f)
     node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
            0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
@@ -126,10 +128,10 @@ def main():
 
     # Create log dir
     today = datetime.today().strftime('%Y-%m-%d')
-    exp_num = "_v41learnconttest"
+    exp_num = "_v43test"
     continue_training = False
     number_of_cores = 1
-    envID = 'RWAFOCS-v42'
+    envID = 'RWAFOCS-v45'
     if continue_training:
         log_dirs = []
         for i in range(number_of_cores):
@@ -173,6 +175,7 @@ def main():
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, tensorboard_log="./tb/PPO-RWA-v0/", policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             # agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
+            # agent = PPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=1000, callback=callback)
             #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
             pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))

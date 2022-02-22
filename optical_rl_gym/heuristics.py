@@ -8,10 +8,10 @@ from optical_rl_gym.utils import Service, Path, LightPath
 from .envs.optical_network_env import OpticalNetworkEnv
 from .envs.rwa_env_focs_v2 import RWAEnvFOCSV2
 
-def kSP_FF(env: RWAEnvFOCSV2) -> Sequence[int]:
+def kSP_FF(env) -> Sequence[int]:
     # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
     best_length = np.inf
-    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
+    decision = (env.k_paths+100, env.num_spectrum_resources+100)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
 
         if path.length < best_length:  # if path is shorter
@@ -19,6 +19,7 @@ def kSP_FF(env: RWAEnvFOCSV2) -> Sequence[int]:
             for wavelength in range(env.num_spectrum_resources):
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    breakpoint()
                     # stores decision and breaks the wavelength loop (first fit)
                     best_length = path.length
                     decision = (idp, wavelength)
