@@ -8,28 +8,36 @@ from optical_rl_gym.utils import Service, Path, LightPath
 from .envs.optical_network_env import OpticalNetworkEnv
 from .envs.rwa_env_focs_v2 import RWAEnvFOCSV2
 
+
+# def test(env):
+#     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
+#         print(idp, path)
+
+
 def kSP_FF(env) -> Sequence[int]:
     # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
-    best_length = np.inf
-    decision = (env.k_paths+100, env.num_spectrum_resources+100)  # stores current decision, initilized as "reject"
+    #best_length = np.inf
+    # print(env.k_paths)
+    # print(env.num_spectrum_resources)
+    decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
 
-        if path.length < best_length:  # if path is shorter
+        #if path.length < best_length:  # if path is shorter
             # checks all wavelengths
-            for wavelength in range(env.num_spectrum_resources):
-                if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
-                wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+        for wavelength in range(env.num_spectrum_resources):
+            if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+            wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+                    # stores decision and breaks the wavelength loop (first fit)
+                    best_length = path.length
+                    decision = (idp, wavelength)
                     breakpoint()
+                    return decision
+            elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+            wavelength) > env.service.bit_rate: # viable lightpath exists
                     # stores decision and breaks the wavelength loop (first fit)
                     best_length = path.length
                     decision = (idp, wavelength)
-                    break
-                elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
-                wavelength) > env.service.bit_rate: # viable lightpath exists
-                    # stores decision and breaks the wavelength loop (first fit)
-                    best_length = path.length
-                    decision = (idp, wavelength)
-                    break
+                    return decision
     return decision
 
 

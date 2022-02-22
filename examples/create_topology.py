@@ -33,9 +33,9 @@ def get_topology(file_name, topology_name, k_paths=2):
         for idn2, n2 in enumerate(topology.nodes()):
             # print(n1)
             # print(n2)
-            #if idn1 != idn2:
-            if idn1 < idn2:    
-                paths = get_k_shortest_paths(topology, n1, n2, k_paths)
+            # if idn1 != idn2:
+            if idn1 < idn2:
+                paths = get_k_shortest_paths(topology, n1, n2, k_paths, weight='length')
                 weights = [get_path_weight(topology, path) for path in paths]
                 lengths = [get_path_weight(topology, path, weight='length') for path in paths]
                 objs = []
@@ -45,7 +45,7 @@ def get_topology(file_name, topology_name, k_paths=2):
                     idp += 1
                 k_shortest_paths[n1, n2] = objs
                 # edge_counter += 1
-                # k_shortest_paths[n2, n1] = objs
+                k_shortest_paths[n2, n1] = objs
     topology.graph['name'] = topology_name
     topology.graph['ksp'] = k_shortest_paths
     topology.graph['k_paths'] = k_paths
@@ -57,7 +57,7 @@ def get_topology(file_name, topology_name, k_paths=2):
     return topology
 
 
-k_paths = 1
+k_paths = 3
 # base_topology_name = 'nsfnet_chen.txt'
 base_topology_name = 'nsfnet_chen_rounded.txt'
 # base_topology_name = 'nsfnet_chen_directional.txt'
