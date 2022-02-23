@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import gym
 from optical_rl_gym.utils import evaluate_heuristic
-from optical_rl_gym.heuristics import kSP_FF, FF_kSP, kSP_MU, CA_MU
+from optical_rl_gym.heuristics import kSP_FF, FF_kSP, kSP_MU, CA_MU, kSP_FF_v2
 
 
 current_directory = os.getcwd()
@@ -24,7 +24,7 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
 load = int(1e10)
-ep_len = 10000
+ep_len = 5000
 req_br = 100e9
 tfb = False
 # mean_service_holding_time=7.5,
@@ -44,17 +44,18 @@ env_args_5 = dict(topology=topology_5, seed=10, load = load,
                 episode_length=ep_len, node_request_probabilities=node_request_probabilities, exp_request_res = req_br,
                 term_on_first_block=tfb)
 
-env_1 = gym.make('RWAFOCS-v221', **env_args_1)
-env_3 = gym.make('RWAFOCS-v221', **env_args_3)
-env_5 = gym.make('RWAFOCS-v221', **env_args_5)
-print('RWAFOCS-v221')
+# env_1 = gym.make('RWAFOCS-v221', **env_args_1)
+# env_3 = gym.make('RWAFOCS-v221', **env_args_3)
+# env_5 = gym.make('RWAFOCS-v221', **env_args_5)
+# print('RWAFOCS-v221')
 
-# env_1 = gym.make('RWAFOCS-v22', **env_args_1)
-# env_3 = gym.make('RWAFOCS-v22', **env_args_3)
-# env_5 = gym.make('RWAFOCS-v22', **env_args_5)
-# print('RWAFOCS-v22')
+env_1 = gym.make('RWAFOCS-v22', **env_args_1)
+env_3 = gym.make('RWAFOCS-v22', **env_args_3)
+env_5 = gym.make('RWAFOCS-v22', **env_args_5)
+print('RWAFOCS-v22')
 
-heuristic = kSP_FF
+# heuristic = kSP_FF
+heuristic = kSP_FF_v2
 # heuristic = FF_kSP
 # heuristic = kSP_MU
 # heuristic = CA_MU
