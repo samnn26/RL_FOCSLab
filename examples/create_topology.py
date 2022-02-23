@@ -35,8 +35,8 @@ def get_topology(file_name, topology_name, k_paths=2):
             # print(n2)
             # if idn1 != idn2:
             if idn1 < idn2:
-                paths = get_k_shortest_paths(topology, n1, n2, k_paths)
-                weights = [get_path_weight(topology, path) for path in paths]
+                paths = get_k_shortest_paths(topology, n1, n2, k_paths, weight='length')
+                weights = [get_path_weight(topology, path, weight='length') for path in paths]
                 lengths = [get_path_weight(topology, path, weight='length') for path in paths]
                 objs = []
                 for path, weight,length in zip(paths, weights, lengths):
