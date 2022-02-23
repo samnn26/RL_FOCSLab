@@ -30,27 +30,27 @@ env_args_1 = dict(topology=topology_1, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
                 episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=False)
+                term_on_first_block=True)
 env_args_3 = dict(topology=topology_3, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
                 episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=False)
+                term_on_first_block=True)
 env_args_5 = dict(topology=topology_5, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
                 episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=False)
+                term_on_first_block=True)
 
-# env_1 = gym.make('RWAFOCS-v221', **env_args_1)
-# env_3 = gym.make('RWAFOCS-v221', **env_args_3)
-# env_5 = gym.make('RWAFOCS-v221', **env_args_5)
-# print('RWAFOCS-v221')
+env_1 = gym.make('RWAFOCS-v221', **env_args_1)
+env_3 = gym.make('RWAFOCS-v221', **env_args_3)
+env_5 = gym.make('RWAFOCS-v221', **env_args_5)
+print('RWAFOCS-v221')
 
-env_1 = gym.make('RWAFOCS-v22', **env_args_1)
-env_3 = gym.make('RWAFOCS-v22', **env_args_3)
-env_5 = gym.make('RWAFOCS-v22', **env_args_5)
-print('RWAFOCS-v22')
+# env_1 = gym.make('RWAFOCS-v22', **env_args_1)
+# env_3 = gym.make('RWAFOCS-v22', **env_args_3)
+# env_5 = gym.make('RWAFOCS-v22', **env_args_5)
+# print('RWAFOCS-v22')
 
 heuristic = kSP_FF
 # heuristic = FF_kSP
