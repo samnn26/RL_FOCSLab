@@ -19,6 +19,8 @@ def kSP_FF(env) -> Sequence[int]:
     #best_length = np.inf
     # print(env.k_paths)
     # print(env.num_spectrum_resources)
+    print(env.service.source, env.service.destination)
+
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
     for idp, path in enumerate(env.topology.graph['ksp'][env.service.source, env.service.destination]):
 
@@ -28,16 +30,40 @@ def kSP_FF(env) -> Sequence[int]:
             if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
             wavelength) > env.service.bit_rate:  # if new viable lightpath is found
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_length = path.length
+                    #best_length = path.length
                     decision = (idp, wavelength)
+                    print(env.get_available_lightpath_capacity(path,wavelength)/1e9)
+                    print(path.length)
                     breakpoint()
+                    print("new lightpath")
+                    print(decision)
+                    print(env.topology.graph['ksp'][env.service.destination, env.service.source][idp].node_list)
                     return decision
             elif env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
             wavelength) > env.service.bit_rate: # viable lightpath exists
                     # stores decision and breaks the wavelength loop (first fit)
-                    best_length = path.length
+                    #best_length = path.length
                     decision = (idp, wavelength)
+                    print("reused lightpath")
+                    print(decision)
+                    print(env.topology.graph['ksp'][env.service.destination, env.service.source][idp].node_list)
+
                     return decision
+            # if env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+            # wavelength) > env.service.bit_rate: # viable lightpath exists
+            #         # stores decision and breaks the wavelength loop (first fit)
+            #         #best_length = path.length
+            #         decision = (idp, wavelength)
+            #         return decision
+            #
+            # elif env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
+            # wavelength) > env.service.bit_rate:  # if new viable lightpath is found
+            #         # stores decision and breaks the wavelength loop (first fit)
+            #         #best_length = path.length
+            #         decision = (idp, wavelength)
+            #         breakpoint()
+            #         return decision
+    print("blocked!")
     return decision
 
 
