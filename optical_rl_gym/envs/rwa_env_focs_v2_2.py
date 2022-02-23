@@ -52,8 +52,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.exp_request_lambda = exp_request_lambda
         self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
-        self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.lightpath_service_allocation = np.zeros([int(self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths*0.5), self.num_spectrum_resources], dtype=int)
         # self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
         # (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
@@ -111,7 +111,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self._new_service = False
         if reset:
             self.reset(only_counters=False)
-        self.initialise_lightpath_capacities()
+        #self.initialise_lightpath_capacities()
     """
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
     The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
@@ -131,8 +131,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         else:  # if we are releasing
             new_capacity = ligthpath.available_capacity + capacity_allocated/1e12 # convert bps to Tbps
         ligthpath.available_capacity = new_capacity
-        #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
-
+        print("called update_available_lightpath_capacity ", channel_ind, " new capacity ", ligthpath.available_capacity, " Tbps")
+        # print(path.node_list, channel_ind)
     # def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
     #
     #     p = self.k_shortest_paths[source, dest][path_ind]
@@ -141,10 +141,11 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
     #     #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
     #     return c_bps #converted to bps(from Tbps)
     def get_available_lightpath_capacity(self, path, channel_ind):
-
+        # print()
         c = path.lightpaths[channel_ind]
         c_bps = c.available_capacity*1e12
-        #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
+        # print(path.node_list)
+        # print("get_available_lightpath_capacity", channel_ind, " is ", c_bps, "bps")
         return c_bps #converted to bps(from Tbps)
 
     # def initialise_capacity_container(self):
@@ -166,19 +167,44 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         return np.sum(self.active_bitrates)
 
     def initialise_lightpath_capacities(self):
+        print("initialise_lightpath_capacities")
         # access through the channels of k shortest paths and initialise to max capacity
         nch = self.num_spectrum_resources
         channel_capacities = None
         for idn1, n1 in enumerate(self.topology.nodes()):
             for idn2, n2 in enumerate(self.topology.nodes()):
-                if idn1 != idn2:
+                # if idn1 != idn2:
+                if idn1 < idn2:
                     for path in range(self.k_paths):
-                        p = self.k_shortest_paths[n1, n2][path]
+                        # p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
-                            capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
+                            capacity = GN_model.calculate_lightpath_capacity(self.k_shortest_paths[n1, n2][path].length,ch)
+                            breakpoint()
+                            # print(idn1, idn2)
+                            #print(p.node_list, p.length)
+                            # # print(ch)
+                            # print(capacity)
                             ligthpath = LightPath(ch, capacity)
-                            p.lightpaths[ch] = ligthpath
+                            self.k_shortest_paths[n1, n2][path].lightpaths[ch] = ligthpath
+                            #self.k_shortest_paths[n2, n1][path].lightpaths[ch] = ligthpath
+                            # print(p.length)
+                            # print(p.lightpaths[ch].available_capacity)
 
+                            # print("initialise_lightpath_capacities1:",self.get_available_lightpath_capacity(self.topology.graph['ksp'][self.k_shortest_paths[n1, n2][path].node_list[0],self.k_shortest_paths[n1, n2][path].node_list[-1]][path], ch))
+                            print("initialise_lightpath_capacities1:",self.get_available_lightpath_capacity(self.k_shortest_paths[n1, n2][path], ch))
+
+        #                     print(self.k_shortest_paths[n1, n2][path].node_list[0],
+        #                     self.k_shortest_paths[n1, n2][path].node_list[-1], path, ch)
+        # print("initialise_lightpath_capacities2:", self.get_available_lightpath_capacity(self.topology.graph['ksp']['5','11'][0], 0))
+        # for idn1, n1 in enumerate(self.topology.nodes()):
+        #     for idn2, n2 in enumerate(self.topology.nodes()):
+        #         # if idn1 != idn2:
+        #         if idn1 < idn2:
+        #             for path in range(self.k_paths):
+        #                 p = self.k_shortest_paths[n1, n2][path]
+        #                 print("initialise_lightpath_capacities1:",self.get_available_lightpath_capacity(self.topology.graph['ksp'][self.k_shortest_paths[n1, n2][path].node_list[0],self.k_shortest_paths[n1, n2][path].node_list[-1]][path], 0))
+                            #capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
+                            # print("initialise_lightpath_capacities1:",self.get_available_lightpath_capacity(self.topology.graph['ksp'][self.k_shortest_paths[n1, n2][path].node_list[0],self.k_shortest_paths[n1, n2][path].node_list[-1]][path], ch))
 
     def step(self, action: Sequence[int]):
 #p = self.k_shortest_paths[source, dest][path_ind]
@@ -299,8 +325,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.cumulative_throughput = []
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
 
-        self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.lightpath_service_allocation = np.zeros([int(self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths*0.5), self.num_spectrum_resources], dtype=int)
         self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
@@ -316,6 +342,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.num_lightpaths_released = 0
         self._new_service = False
         self._next_service()
+        print("get_available_lightpath_capacity", self.get_available_lightpath_capacity(self.topology.graph['ksp']['5','11'][0], 0))
         return self.observation()
 
     def render(self, mode='human', close=False):

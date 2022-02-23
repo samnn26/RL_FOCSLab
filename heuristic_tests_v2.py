@@ -8,11 +8,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import gym
 from optical_rl_gym.utils import evaluate_heuristic
-from optical_rl_gym.envs.rwa_env_focs_v2 import kSP_FF, FF_kSP, kSP_MU, CA_MU
+from optical_rl_gym.heuristics import kSP_FF, FF_kSP, kSP_MU, CA_MU
 
 
 current_directory = os.getcwd()
-with open(current_directory+'/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+with open(current_directory+'/topologies/nsfnet_chen_3-paths_rounded.h5', 'rb') as f:
     topology = pickle.load(f)
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
 node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
@@ -24,14 +24,15 @@ load = int(1e10)
 # mean_service_holding_time=7.5,
 env_args = dict(topology=topology, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
-                mean_service_holding_time=int(1e6),
-                episode_length=5000, node_request_probabilities=node_request_probabilities)
+                mean_service_holding_time=1e8,
+                episode_length=4000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
+                term_on_first_block=True)
 
-env = gym.make('RWAFOCS-v2', **env_args)
+env = gym.make('RWAFOCS-v22', **env_args)
 
-# heuristic = kSP_FF
+heuristic = kSP_FF
 # heuristic = FF_kSP
-heuristic = kSP_MU
+# heuristic = kSP_MU
 # heuristic = CA_MU
 mean_reward, std_reward = evaluate_heuristic(env, heuristic, n_eval_episodes=1,
                        render=False, callback=None, reward_threshold=None,
