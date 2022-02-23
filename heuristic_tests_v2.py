@@ -24,33 +24,35 @@ node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.019
        0.07607608, 0.12012012, 0.01901902, 0.16916917])
 
 load = int(1e10)
-
+ep_len = 10000
+req_br = 100e9
+tfb = False
 # mean_service_holding_time=7.5,
 env_args_1 = dict(topology=topology_1, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
-                episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=True)
+                episode_length=ep_len, node_request_probabilities=node_request_probabilities, exp_request_res = req_br,
+                term_on_first_block=tfb)
 env_args_3 = dict(topology=topology_3, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
-                episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=True)
+                episode_length=ep_len, node_request_probabilities=node_request_probabilities, exp_request_res = req_br,
+                term_on_first_block=tfb)
 env_args_5 = dict(topology=topology_5, seed=10, load = load,
                 allow_rejection=False, # the agent cannot proactively reject a request
                 mean_service_holding_time=1e8,
-                episode_length=10000, node_request_probabilities=node_request_probabilities, exp_request_res = 25e9,
-                term_on_first_block=True)
+                episode_length=ep_len, node_request_probabilities=node_request_probabilities, exp_request_res = req_br,
+                term_on_first_block=tfb)
 
-# env_1 = gym.make('RWAFOCS-v221', **env_args_1)
-# env_3 = gym.make('RWAFOCS-v221', **env_args_3)
-# env_5 = gym.make('RWAFOCS-v221', **env_args_5)
-# print('RWAFOCS-v221')
+env_1 = gym.make('RWAFOCS-v221', **env_args_1)
+env_3 = gym.make('RWAFOCS-v221', **env_args_3)
+env_5 = gym.make('RWAFOCS-v221', **env_args_5)
+print('RWAFOCS-v221')
 
-env_1 = gym.make('RWAFOCS-v22', **env_args_1)
-env_3 = gym.make('RWAFOCS-v22', **env_args_3)
-env_5 = gym.make('RWAFOCS-v22', **env_args_5)
-print('RWAFOCS-v22')
+# env_1 = gym.make('RWAFOCS-v22', **env_args_1)
+# env_3 = gym.make('RWAFOCS-v22', **env_args_3)
+# env_5 = gym.make('RWAFOCS-v22', **env_args_5)
+# print('RWAFOCS-v22')
 
 heuristic = kSP_FF
 # heuristic = FF_kSP

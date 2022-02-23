@@ -19,7 +19,7 @@ def kSP_FF(env) -> Sequence[int]:
             for wavelength in range(env.num_spectrum_resources):
                 if env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path,
                 wavelength) > env.service.bit_rate:  # if new viable lightpath is found
-                    breakpoint()
+                    
                     # stores decision and breaks the wavelength loop (first fit)
                     best_length = path.length
                     decision = (idp, wavelength)

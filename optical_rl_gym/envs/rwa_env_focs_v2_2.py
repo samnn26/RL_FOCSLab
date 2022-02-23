@@ -171,7 +171,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         channel_capacities = None
         for idn1, n1 in enumerate(self.topology.nodes()):
             for idn2, n2 in enumerate(self.topology.nodes()):
-                if idn1 != idn2:
+                # if idn1 != idn2:
+                if idn1 < idn2:
                     for path in range(self.k_paths):
                         p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
