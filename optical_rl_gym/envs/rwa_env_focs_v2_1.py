@@ -26,7 +26,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=True):
+                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -88,6 +88,7 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
 
         self.observation_space = gym.spaces.Box(low=0.0, high=100, dtype=np.float32, shape=(shape,))
         self.initialise_nsr()
+
         # self.action_space = gym.spaces.MultiDiscrete((self.k_paths + self.reject_action,
         #                                 self.num_spectrum_resources + self.reject_action))
         #
@@ -138,8 +139,9 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
             new_capacity = ligthpath.available_capacity - capacity_allocated/1e12 # convert bps to Tbps
         else:  # if we are releasing
             new_capacity = ligthpath.available_capacity + capacity_allocated/1e12 # convert bps to Tbps
+       # print("capacity before ",ligthpath.available_capacity)
         ligthpath.available_capacity = new_capacity
-        #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
+       # print("available capacity updated for lightpath ", channel_ind, " new capacity ", path.lightpaths[channel_ind].available_capacity, " Tbps")
 
     # def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
     #
@@ -175,18 +177,44 @@ class RWAEnvFOCSV2_1(OpticalNetworkEnv):
 
     def initialise_lightpath_capacities(self):
         # access through the channels of k shortest paths and initialise to max capacity
+       # print("called initialise methods........................................................................")
         nch = self.num_spectrum_resources
+
         channel_capacities = None
         for idn1, n1 in enumerate(self.topology.nodes()):
             for idn2, n2 in enumerate(self.topology.nodes()):
                 if idn1 != idn2:
                     for path in range(self.k_paths):
                         p = self.k_shortest_paths[n1, n2][path]
+                       # print(f"address of lightpaths: {id(p.lightpaths)}")
                         for ch in range(nch):
                             capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
-
+                        # if idn1==4 and idn2==10:
+                        #     print("initialise_lightpath_capacities - before storing : source", idn1, " dest ", idn2, " path id ", path, "lightpath 0",
+                        #       " capacity is ", capacity)
+                        #     print("initialise_lightpath_capacities- after storing in the same loop: source", idn1, " dest ", idn2, " path id ", path, "lightpath capacity ",
+                        #           self.get_available_lightpath_capacity(p,0))
+                        # if idn1 == 12 and idn2 == 13:
+                        #     print("initialise_lightpath_capacities - before storing : source", idn1, " dest ", idn2,
+                        #               " path id ", path, "lightpath 0",
+                        #               " capacity is ", capacity)
+                        #     print("initialise_lightpath_capacities- after storing in the same loop: source", idn1,
+                        #               " dest ", idn2, " path id ", path, "lightpath capacity ",
+                                     # self.get_available_lightpath_capacity(p, 0))
+        # for idn1, n1 in enumerate(self.topology.nodes()):
+        #     for idn2, n2 in enumerate(self.topology.nodes()):
+        #         if idn1 != idn2:
+        #             for path in range(self.k_paths):
+        #                 p = self.k_shortest_paths[n1, n2][path]
+        #                 if idn1 == 4 and idn2 == 10:
+        #                     print("initialise_lightpath_capacities-after storing outside the loop: source",
+        #                           idn1, " dest ", idn2, " path id ", path, "lightpath 0",p.lightpaths[0], " capacity is ", self.get_available_lightpath_capacity(p,0))
+        #                 if idn1 == 12 and idn2 == 13:
+        #                     print("initialise_lightpath_capacities-after storing outside the loop: source", idn1,
+        #                           " dest ", idn2, " path id ", path, "lightpath ", p.lightpaths[0], " capacity is ",
+        #                           self.get_available_lightpath_capacity(p, 0))
 
     def step(self, action: Sequence[int]):
 #p = self.k_shortest_paths[source, dest][path_ind]
