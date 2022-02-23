@@ -57,7 +57,7 @@ def get_topology(file_name, topology_name, k_paths=2):
     return topology
 
 
-k_paths = 3
+k_paths = 5
 # base_topology_name = 'nsfnet_chen.txt'
 base_topology_name = 'nsfnet_chen_rounded.txt'
 # base_topology_name = 'nsfnet_chen_directional.txt'
