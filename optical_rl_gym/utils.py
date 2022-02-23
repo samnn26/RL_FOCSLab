@@ -1,3 +1,4 @@
+import time
 from itertools import islice
 import networkx as nx
 import numpy as np
@@ -6,12 +7,14 @@ import GN_model
 
 class Path:
 
-    def __init__(self, path_id, node_list, weight, length, best_modulation=None, lightpaths=dict()):
+    def __init__(self, path_id, node_list, weight, length, best_modulation=None, lightpaths=None):
         self.path_id = path_id
         self.node_list = node_list
         self.length = length
         self.best_modulation = best_modulation
         self.hops = len(node_list) - 1
+        if not lightpaths:
+            lightpaths = {}
         self.lightpaths = lightpaths
         self.weight = weight
 
@@ -147,13 +150,3 @@ class LightPath:
 #     link_nsr = env.link_nsrs[link_id]
 #     link_nsr = link_nsr - wavelen_nsr
 #     env.topology.graph.nsrs[link_id] = link_nsr
-
-
-
-
-
-
-
-
-
-
