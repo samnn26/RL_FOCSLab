@@ -131,7 +131,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         else:  # if we are releasing
             new_capacity = ligthpath.available_capacity + capacity_allocated/1e12 # convert bps to Tbps
         ligthpath.available_capacity = new_capacity
-        print("called update_available_lightpath_capacity ", channel_ind, " new capacity ", ligthpath.available_capacity, " Tbps")
+        #print("called update_available_lightpath_capacity ", channel_ind, " new capacity ", ligthpath.available_capacity, " Tbps")
         # print(path.node_list, channel_ind)
     # def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
     #
@@ -167,7 +167,7 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         return np.sum(self.active_bitrates)
 
     def initialise_lightpath_capacities(self):
-        print("initialise_lightpath_capacities")
+        #print("initialise_lightpath_capacities")
         # access through the channels of k shortest paths and initialise to max capacity
         nch = self.num_spectrum_resources
         channel_capacities = None
