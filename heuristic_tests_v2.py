@@ -23,12 +23,12 @@ with open(current_directory+'/topologies/nsfnet_chen_2-paths_rounded.h5', 'rb') 
 with open(current_directory+'/topologies/nsfnet_chen_1-paths_rounded.h5', 'rb') as f:
     topology_1 = pickle.load(f)
 # node probabilities from https://github.com/xiaoliangchenUCD/DeepRMSA/blob/6708e9a023df1ec05bfdc77804b6829e33cacfe4/Deep_RMSA_A3C.py#L77
-node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-       0.07607608, 0.12012012, 0.01901902, 0.16916917])
-
+# node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+#        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+#        0.07607608, 0.12012012, 0.01901902, 0.16916917])
+node_request_probabilities = pickle.load(open("node_req_probs/14_node_uniform.pkl",'rb'))
 load = int(1e10)
-ep_len = 10000
+ep_len = 20000
 req_br = 100e9
 tfb = False
 # mean_service_holding_time=7.5,
@@ -77,33 +77,33 @@ print('RWAFOCS-v22')
 heuristic = kSP_MU
 # heuristic = CA_MU
 
-mean_reward_1, std_reward_1 = evaluate_heuristic(env_1, heuristic, n_eval_episodes=1,
-                       render=False, callback=None, reward_threshold=None,
-                       return_episode_rewards=False)
-print("mean reward T1:", mean_reward_1)
-print("Std reward T1:", std_reward_1)
-print('Total number of accepted services T1:', env_1.services_accepted)
-
-mean_reward_2, std_reward_2 = evaluate_heuristic(env_2, heuristic, n_eval_episodes=1,
-                       render=False, callback=None, reward_threshold=None,
-                       return_episode_rewards=False)
-print("mean reward T2:", mean_reward_2)
-print("Std reward T2:", std_reward_2)
-print('Total number of accepted services T2:', env_2.services_accepted)
-
+# mean_reward_1, std_reward_1 = evaluate_heuristic(env_1, heuristic, n_eval_episodes=1,
+#                        render=False, callback=None, reward_threshold=None,
+#                        return_episode_rewards=False)
+# print("mean reward T1:", mean_reward_1)
+# print("Std reward T1:", std_reward_1)
+# print('Total number of accepted services T1:', env_1.services_accepted)
+#
+# mean_reward_2, std_reward_2 = evaluate_heuristic(env_2, heuristic, n_eval_episodes=1,
+#                        render=False, callback=None, reward_threshold=None,
+#                        return_episode_rewards=False)
+# print("mean reward T2:", mean_reward_2)
+# print("Std reward T2:", std_reward_2)
+# print('Total number of accepted services T2:', env_2.services_accepted)
+#
 mean_reward_3, std_reward_3 = evaluate_heuristic(env_3, heuristic, n_eval_episodes=1,
                        render=False, callback=None, reward_threshold=None,
                        return_episode_rewards=False)
 print("mean reward T3:", mean_reward_3)
 print("Std reward T3:", std_reward_3)
 print('Total number of accepted services T3:', env_3.services_accepted)
-
-mean_reward_4, std_reward_4 = evaluate_heuristic(env_4, heuristic, n_eval_episodes=1,
-                       render=False, callback=None, reward_threshold=None,
-                       return_episode_rewards=False)
-print("mean reward T4:", mean_reward_4)
-print("Std reward T4:", std_reward_4)
-print('Total number of accepted services T4:', env_4.services_accepted)
+#
+# mean_reward_4, std_reward_4 = evaluate_heuristic(env_4, heuristic, n_eval_episodes=1,
+#                        render=False, callback=None, reward_threshold=None,
+#                        return_episode_rewards=False)
+# print("mean reward T4:", mean_reward_4)
+# print("Std reward T4:", std_reward_4)
+# print('Total number of accepted services T4:', env_4.services_accepted)
 
 mean_reward_5, std_reward_5 = evaluate_heuristic(env_5, heuristic, n_eval_episodes=1,
                        render=False, callback=None, reward_threshold=None,

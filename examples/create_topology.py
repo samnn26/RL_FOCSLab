@@ -59,21 +59,21 @@ def get_topology(file_name, topology_name, k_paths=2):
 
 k_paths = 1
 # base_topology_name = 'nsfnet_chen.txt'
-base_topology_name = 'nsfnet_chen_rounded.txt'
+# base_topology_name = 'nsfnet_chen_rounded.txt'
 # base_topology_name = 'nsfnet_chen_directional.txt'
 # base_topology_name = '3_node_network_asym.txt'
 # base_topology_name = '3_node_network_asym.txt'
-# base_topology_name = 'dtag.txt'
+base_topology_name = 'dtag.txt'
 # base_topology_name = 'gb.txt'
 # new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths.h5'
-new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_rounded.h5'
+# new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_rounded.h5'
 # new_topology_name = 'nsfnet_chen_'+str(k_paths)+'-paths_directional.h5'
 # new_topology_name = '3_node_network_asym.h5'
 # new_topology_name = '3_node_network_sym.h5'
-# new_topology_name = 'dtag_'+str(k_paths)+'-paths.h5'
+new_topology_name = 'dtag_'+str(k_paths)+'-paths.h5'
 # new_topology_name = 'gb_'+str(k_paths)+'-paths.h5'
 
-topology = get_topology('./topologies/'+base_topology_name, 'NSFNETROUNDED', k_paths=k_paths)
+topology = get_topology('./topologies/'+base_topology_name, 'DTAG', k_paths=k_paths)
 
 with open(f'./topologies/'+new_topology_name, 'wb') as f:
     pickle.dump(topology, f)

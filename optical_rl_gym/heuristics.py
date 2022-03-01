@@ -92,7 +92,7 @@ def kSP_FF(env) -> Sequence[int]:
 #                     found_path = True
 #     return decision
 
-def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
+def FF_kSP(env) -> Sequence[int]:
     # best_hops = np.finfo(0.0).max  # in this case, shortest means least hops
 
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
@@ -120,7 +120,7 @@ def FF_kSP(env: RWAEnvFOCSV2) -> Sequence[int]:
     return decision
 
 
-def kSP_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
+def kSP_MU(env) -> Sequence[int]:
 
     mu_wavelength = -1
     decision = (env.k_paths, env.num_spectrum_resources)  # stores current decision, initilized as "reject"
@@ -139,7 +139,7 @@ def kSP_MU(env: RWAEnvFOCSV2) -> Sequence[int]:
             wavelength) > env.service.bit_rate: # viable lightpath exists
 
                 if np.sum(env.lightpath_service_allocation[:, wavelength]) > mu_wavelength:
-                    
+
                     mu_wavelength = wavelength
                     decision = (idp, wavelength)
 

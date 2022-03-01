@@ -52,8 +52,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.exp_request_lambda = exp_request_lambda
         self.include_utilisation = False
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
-        self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.lightpath_service_allocation = np.zeros([int(self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths*0.5), self.num_spectrum_resources], dtype=int)
         # self.lightpath_capacities = np.zeros([self.topology.number_of_nodes()*
         # (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=float)
         self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
@@ -300,8 +300,8 @@ class RWAEnvFOCSV2_2(OpticalNetworkEnv):
         self.cumulative_throughput = []
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
 
-        self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
-        (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
+        self.lightpath_service_allocation = np.zeros([int(self.topology.number_of_nodes()*
+        (self.topology.number_of_nodes()-1)*self.k_paths*0.5), self.num_spectrum_resources], dtype=int)
         self.active_bitrates = np.zeros([self.topology.number_of_nodes()*
         (self.topology.number_of_nodes()-1)*self.k_paths, self.num_spectrum_resources], dtype=int)
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),

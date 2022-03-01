@@ -17,6 +17,7 @@ from datetime import datetime
 import sb3_contrib
 import stable_baselines3
 from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.env_checker import check_env
 # from stable_baselines3.results_plotter import load_results, ts2xy
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 from sb3_contrib import MaskablePPO
@@ -115,10 +116,16 @@ def main():
     # with open(f'/Users/joshnevin/RL_FOCSLab/topologies/dtag_5-paths.h5', 'rb') as f:
     with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_rounded.h5', 'rb') as f:
         topology = pickle.load(f)
-    node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-           0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-           0.07607608, 0.12012012, 0.01901902, 0.16916917])
-
+    # node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+    #        0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+    #        0.07607608, 0.12012012, 0.01901902, 0.16916917])
+    # uni_prob = 1/14
+    # node_request_probabilities = np.ones(14)*uni_prob
+    # print(node_request_probabilities.shape)
+    # pickle.dump(node_request_probabilities, open("node_req_probs/nsfnet_chen_gravity.pkl",'wb'))
+    # pickle.dump(node_request_probabilities, open("node_req_probs/14_node_uniform.pkl",'wb'))
+    node_request_probabilities = pickle.load(open("node_req_probs/nsfnet_chen_gravity.pkl",'rb'))
+    print(node_request_probabilities)
     load = int(1e10)
     env_args = dict(topology=topology, seed=10, load = load,
                     allow_rejection=False, # the agent cannot proactively reject a request
@@ -132,6 +139,8 @@ def main():
     continue_training = False
     number_of_cores = 1
     envID = 'RWAFOCS-v45'
+    check_environment = True
+
     if continue_training:
         log_dirs = []
         for i in range(number_of_cores):
@@ -168,6 +177,12 @@ def main():
             log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
             os.makedirs(log_dir, exist_ok=True)
             callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
+            if check_environment:
+                env = gym.make(envID, **env_args)
+                env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
+                'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
+                check_env(env)
+            breakpoint()
             env = DummyVecEnv([make_env(envID, env_args, log_dir)])
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch) # we use the elu activation function
