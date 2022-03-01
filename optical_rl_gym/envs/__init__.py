@@ -29,3 +29,5 @@ from optical_rl_gym.envs.rwa_env_focs_v4_5 import RWAEnvFOCSV4_5
 from optical_rl_gym.envs.rwa_env_focs_v4_21 import RWAEnvFOCSV4_21
 from optical_rl_gym.envs.rwa_env_focs_v5 import RWAEnvFOCSV5
 from optical_rl_gym.envs.rwa_env_focs_v5_2 import RWAEnvFOCSV5_2
+from optical_rl_gym.envs.rwa_env_focs_v6 import RWAEnvFOCSV6
+from optical_rl_gym.envs.rwa_env_focs_v7 import RWAEnvFOCSV7

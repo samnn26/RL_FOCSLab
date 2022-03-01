@@ -139,3 +139,12 @@ register(
     id='QoSConstrainedRA-v0',
     entry_point='optical_rl_gym.envs:QoSConstrainedRA',
 )
+register(
+    id='RWAFOCS-v6',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV6',
+)
+register(
+    id='RWAFOCS-v7',
+    entry_point='optical_rl_gym.envs:RWAEnvFOCSV7',
+)
+
