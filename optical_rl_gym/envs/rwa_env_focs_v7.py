@@ -223,7 +223,8 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
             'episode_cum_services_accepted': self.episode_cum_services_accepted,
             'lightpath_action_output_probability': np.sum(self.actions_output) / self.services_processed,
             'lightpath_action_taken_probability': np.sum(self.actions_taken) / self.services_processed,
-            'throughput': self.get_throughput()
+            'throughput': self.get_throughput(),
+            'service_distribution': self.topology.graph['available_wavelengths'].flatten().tolist()
         }
 
         self._new_service = False

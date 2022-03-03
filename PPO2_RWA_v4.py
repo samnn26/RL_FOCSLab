@@ -6,11 +6,11 @@ from IPython.display import clear_output
 
 import matplotlib
 #import config InlineBackend.figure_format = 'svg'
-import tensorflow as tf
+# import tensorflow as tf
 
 # silencing tensorflow warnings
-import logging
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
+# import logging
+# logging.getLogger('tensorflow').setLevel(logging.FATAL)
 from datetime import datetime
 
 # tf.__version__ # printint out tensorflow version used
@@ -177,12 +177,12 @@ def main():
             log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
             os.makedirs(log_dir, exist_ok=True)
             callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-            if check_environment:
-                env = gym.make(envID, **env_args)
-                env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
-                'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
-                check_env(env)
-            breakpoint()
+            # if check_environment:
+            #     env = gym.make(envID, **env_args)
+            #     env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
+            #     'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
+            #     check_env(env)
+            # breakpoint()
             env = DummyVecEnv([make_env(envID, env_args, log_dir)])
             net_arch = 2*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch) # we use the elu activation function
