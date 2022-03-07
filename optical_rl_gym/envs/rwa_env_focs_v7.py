@@ -65,7 +65,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
                                                dtype=int)
         self.num_lightpaths_reused = 0
         self.episode_num_lightpaths_reused = 0
-        self.nch = 100
+        #self.nch = self.num_spectrum_resources
         self.max_lightpath_capacity = GN_model.calculate_lightpath_capacity(100, 1)
 
         self.num_lightpaths_released = 0  # tracks every time we call _release_path
@@ -366,7 +366,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         capacity_obs = np.full((self.k_paths, self.num_spectrum_resources), fill_value=-1.)
 
         for idp, path in enumerate(self.k_shortest_paths[self.service.source, self.service.destination]):
-            for ch in range(self.nch):
+            for ch in range(self.num_spectrum_resources):
                 capacity = self.get_available_lightpath_capacity(path,ch)
                 capacity_normalised = capacity/self.max_lightpath_capacity
                 capacity_obs[idp,ch] = capacity_normalised

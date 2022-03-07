@@ -6,21 +6,15 @@ from IPython.display import clear_output
 
 import matplotlib
 #import config InlineBackend.figure_format = 'svg'
-import tensorflow as tf
-
-# silencing tensorflow warnings
-import logging
-logging.getLogger('tensorflow').setLevel(logging.FATAL)
-from datetime import datetime
 
 # tf.__version__ # printint out tensorflow version used
-import sb3_contrib
+#import sb3_contrib
 import stable_baselines3
 from stable_baselines3.common.callbacks import BaseCallback
 # from stable_baselines3.results_plotter import load_results, ts2xy
 from stable_baselines3.common.results_plotter import load_results, ts2xy
-from sb3_contrib import MaskablePPO
-#from stable_baselines3 import PPO
+#from sb3_contrib import MaskablePPO
+from stable_baselines3 import PPO
 # from stable_baselines3.bench import Monitor
 from stable_baselines3.common.monitor import Monitor
 #from stable_baselines3.common.policies import MlpPolicy
@@ -37,10 +31,10 @@ parser = argparse.ArgumentParser(description='Set up simulation.')
 parser.add_argument('--tfb', dest='tfb', action='store_true')
 parser.add_argument('--no-tfb', dest='tfb', action='store_false')
 parser.set_defaults(tfb=True)
-parser.add_argument('--env_id', default='', type=str)
 parser.add_argument('--numtimesteps', default='1e6', type=float)
 parser.add_argument('--expname', default='_0', type=str)
 parser.add_argument('--numcores', default='1', type=int)
+# parser.add_argument('--gpu', default='True', type=bool)
 parser.add_argument('--gpu', dest='gpu', action='store_true')
 parser.add_argument('--no-gpu', dest='gpu', action='store_false')
 parser.set_defaults(gpu=True)
@@ -55,7 +49,7 @@ parser.add_argument('--batchsize', default='128', type=int)
 parser.add_argument('--numlayers', default='4', type=int)
 parser.add_argument('--numneurons', default='32', type=int)
 parser.add_argument('--topology', default='', type=str)
-parser.add_argument('--node_req_prbs', default='nsfnet_chen_gravity', type=str)
+parser.add_argument('--env_id', default='', type=str)
 args = parser.parse_args()
 termfirstblock = args.tfb
 numtimesteps = int(args.numtimesteps)
@@ -74,7 +68,7 @@ numlayers = args.numlayers
 numneurons = args.numneurons
 topology_name = args.topology
 env_id = args.env_id
-node_req_prbs = args.node_req_prbs
+
 # callback from https://stable-baselines.readthedocs.io/en/master/guide/examples.html#using-callback-monitoring-training
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -124,7 +118,8 @@ def make_env(env_args, log_dir):
     def maker():
         env = gym.make(env_id, **env_args)
         env = Monitor(env, log_dir + 'training', info_keywords=('episode_services_accepted',
-        'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
+        'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
+        'episode_cum_services_processed', 'throughput'))
         return env
     return maker
 
@@ -140,7 +135,8 @@ def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
     def _init():
         env = gym.make(env_id, **env_args)
         env = Monitor(env, log_dirs[rank] + 'training', info_keywords=('episode_services_accepted',
-        'episode_services_processed', 'services_accepted', 'services_processed', 'throughput'))
+        'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
+        'episode_cum_services_processed', 'throughput'))
         env.seed(seed + rank)
         return env
     #set_global_seeds(seed)
@@ -149,18 +145,17 @@ def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
 def main():
     # loading the topology binary file containing the graph and the k-shortest paths
     current_directory = os.getcwd()
-    #with open(current_directory+'/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
     with open(current_directory+'/topologies/'+topology_name+'.h5', 'rb') as f:
-   #     topology = pickle.load(f)
+    #     topology = pickle.load(f)
     # with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
     #     topology = pickle.load(f)
     # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
     # with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
         topology = pickle.load(f)
-    #node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
-    #       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
-    #       0.07607608, 0.12012012, 0.01901902, 0.16916917])
-    node_request_probabilities = pickle.load(open("node_req_probs/"+node_req_prbs+".pkl",'rb'))
+    node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
+           0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
+           0.07607608, 0.12012012, 0.01901902, 0.16916917])
+
     #load = int(1e10)
     env_args = dict(topology=topology, seed=10, load = load,
                     allow_rejection=False, # the agent cannot proactively reject a request
@@ -183,11 +178,10 @@ def main():
         pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
         env = SubprocVecEnv([make_env_multiproc(env_id, i, env_args, log_dirs) for i in range(number_of_cores)])
         model_dir = "./tmp/RWAFOCS-ppo/"+continuedexp+"/_core_0"
-        agent = MaskablePPO.load(model_dir+'/best_model')
+        agent = PPO.load(model_dir+'/best_model')
         agent.set_env(env)
         a = agent.learn(total_timesteps=int(numtimesteps), callback=callback)
         #pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
-
     else:
         if number_of_cores == 1:
             log_dir = "./tmp/RWAFOCS-ppo/"+today+exp_num+"/"
@@ -197,14 +191,31 @@ def main():
             net_arch = 3*[64]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch) # we use the elu activation function
             if gpu:
-                agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5, device='cuda')
+                agent = PPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=gamma, learning_rate=learningrate, device='cuda')
                 #agent = PPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5, device='cuda')
             else:
-                agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5, device='cpu')
+                agent = PPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5)
             a = agent.learn(total_timesteps=1000, callback=callback)
             #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
             pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
+            env_print = env.envs[0]
+            print("Whole training process statistics:")
+            #rnd_lightpath_action_probability = env_print.actions_output / env_print.services_processed
+            print('Lightpath action probability:', env_print.actions_output / env_print.services_processed)
 
+            num_lps_reused = env_print.num_lightpaths_reused
+            print('Load (Erlangs):', load)
+            print('Last service bit rate (Gb/s):', env_print.service.bit_rate/1e9)
+            print('Total number of services:', env_print.services_processed)
+            print('Total number of accepted services:', env_print.services_accepted)
+            print('Blocking probability:', 1 - env_print.services_accepted/env_print.services_processed)
+            print('Number of services on existing lightpaths:', num_lps_reused)
+            print('Number of services released:', env_print.num_lightpaths_released)
+            print('Number of transmitters on each node:', env_print.num_transmitters)
+            print('Number of receivers on each node:', env_print.num_receivers)
+            print('Final throughput (TB/s):', env_print.get_throughput()/1e12)
+            print('Episode number of no valid state events:', env_print.episode_no_valid_actions)
+            print('Number of no valid state events:', env_print.no_valid_actions)
         else:
             log_dirs = []
             for i in range(number_of_cores):
@@ -216,9 +227,9 @@ def main():
             net_arch = numlayers*[numneurons]  # default for MlpPolicy
             policy_args = dict(net_arch=net_arch)
             if gpu:
-                agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=gamma, learning_rate=learningrate, batch_size = batchsize, device='cuda')
+                agent = PPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=gamma, learning_rate=learningrate, batch_size = batchsize, device='cuda')
             else:
-                agent = MaskablePPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=gamma, learning_rate=learningrate, batch_size = batchsize, device = 'cpu')
+                agent = PPO('MlpPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=gamma, learning_rate=learningrate, batch_size = batchsize)
             a = agent.learn(total_timesteps=numtimesteps, callback=callback)
 if __name__ == '__main__':
     main()
