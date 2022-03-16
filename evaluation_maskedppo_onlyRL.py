@@ -100,9 +100,8 @@ pickle.dump(termonfirstblock,open(eval_dir+"/tfb_test.pkl",'wb'))
 env = gym.make(env_id, **env_args)
 env = Monitor(env, eval_dir + 'evaluation_rl', info_keywords=('episode_services_accepted',
 'episode_services_processed', 'services_accepted', 'services_processed', 'episode_cum_services_accepted',
-'episode_cum_services_processed', 'throughput','service_distribution'))
+'episode_cum_services_processed', 'throughput','service_distribution','service_distribution_25pc','service_distribution_50pc','service_distribution_75pc'))
 
 model = MaskablePPO.load(model_dir+'best_model')
 
 mean_reward_rl, std_reward_rl = evaluate_policy(model, env, n_eval_episodes=n_eval_eps,deterministic =True)
-

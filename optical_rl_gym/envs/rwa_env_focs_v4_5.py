@@ -45,7 +45,9 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
-
+        self.service_distribution_25pc = 0  # initialise 25%, 50% and 75% service distribution counters
+        self.service_distribution_50pc = 0
+        self.service_distribution_75pc = 0
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.term_on_first_block = term_on_first_block # whether or not to terminate episode rewards after first blocking
@@ -247,6 +249,15 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
 
         reward = self.reward()
 
+        if self.episode_services_processed == int(self.episode_length*0.25):
+            self.service_distribution_25pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
+        if self.episode_services_processed == int(self.episode_length*0.5):
+            self.service_distribution_50pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
+        if self.episode_services_processed == int(self.episode_length*0.75):
+            self.service_distribution_75pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
         info = {
             'services_processed': self.services_processed,
             'episode_services_processed': self.episode_services_processed,
@@ -257,7 +268,10 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
             'lightpath_action_output_probability': np.sum(self.actions_output) / self.services_processed,
             'lightpath_action_taken_probability': np.sum(self.actions_taken) / self.services_processed,
             'throughput': self.get_throughput(),
-            'service_distribution': self.topology.graph['available_wavelengths'].flatten().tolist()
+            'service_distribution': self.topology.graph['available_wavelengths'].flatten().tolist(),
+            'service_distribution_25pc': self.service_distribution_25pc,
+            'service_distribution_50pc': self.service_distribution_50pc,
+            'service_distribution_75pc': self.service_distribution_75pc
         }
 
         self._new_service = False
