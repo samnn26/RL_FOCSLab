@@ -45,9 +45,13 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
-        self.service_distribution_25pc = 0  # initialise 25%, 50% and 75% service distribution counters
+        self.service_distribution_125pc = 0
+        self.service_distribution_25pc = 0
+        self.service_distribution_375pc = 0  # initialise 25%, 50% and 75% service distribution counters
         self.service_distribution_50pc = 0
+        self.service_distribution_625pc = 0
         self.service_distribution_75pc = 0
+        self.service_distribution_875pc = 0
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.term_on_first_block = term_on_first_block # whether or not to terminate episode rewards after first blocking
@@ -204,7 +208,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-                self.episode_cum_services_accepted.append(self.episode_services_accepted)
+
 
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -221,7 +225,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-                self.episode_cum_services_accepted.append(self.episode_services_accepted)
+
                 self.service.new_lp = False
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -243,20 +247,33 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         self.services_processed += 1
         self.episode_services_processed += 1
         self.episode_cum_services_processed.append(self.episode_services_processed)
-
+        self.episode_cum_services_accepted.append(self.episode_services_accepted)
         self.topology.graph['services'].append(self.service)
 
 
         reward = self.reward()
 
+        if self.episode_services_processed == int(self.episode_length*0.125):
+            self.service_distribution_125pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
         if self.episode_services_processed == int(self.episode_length*0.25):
             self.service_distribution_25pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
+        if self.episode_services_processed == int(self.episode_length*0.375):
+            self.service_distribution_375pc = self.topology.graph['available_wavelengths'].flatten().tolist()
 
         if self.episode_services_processed == int(self.episode_length*0.5):
             self.service_distribution_50pc = self.topology.graph['available_wavelengths'].flatten().tolist()
 
+        if self.episode_services_processed == int(self.episode_length*0.625):
+            self.service_distribution_625pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
         if self.episode_services_processed == int(self.episode_length*0.75):
             self.service_distribution_75pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
+        if self.episode_services_processed == int(self.episode_length*0.875):
+            self.service_distribution_875pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+
 
         info = {
             'services_processed': self.services_processed,
@@ -269,9 +286,13 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
             'lightpath_action_taken_probability': np.sum(self.actions_taken) / self.services_processed,
             'throughput': self.get_throughput(),
             'service_distribution': self.topology.graph['available_wavelengths'].flatten().tolist(),
+            'service_distribution_125pc': self.service_distribution_125pc,
             'service_distribution_25pc': self.service_distribution_25pc,
+            'service_distribution_375pc': self.service_distribution_375pc,
             'service_distribution_50pc': self.service_distribution_50pc,
-            'service_distribution_75pc': self.service_distribution_75pc
+            'service_distribution_625pc': self.service_distribution_625pc,
+            'service_distribution_75pc': self.service_distribution_75pc,
+            'service_distribution_875pc': self.service_distribution_875pc
         }
 
         self._new_service = False
