@@ -14,4 +14,4 @@ pip install -e .
 ``` 
 You can see the dependencies in the [setup.py](setup.py) file. These can be installed easily with pip/conda. 
 
-
+We use the implementation of PPO with invalid action masking provided by the Stable-Baselines Contrib library: https://github.com/Stable-Baselines-Team/stable-baselines3-contrib 
