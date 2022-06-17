@@ -27,7 +27,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                  allow_rejection=True,
                  k_paths=5,
                  #seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False):
-                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1):
+                 seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, capacity_scaling=1.0, norm_scaling=1.0):
         super().__init__(topology=topology,
                          episode_length=episode_length,
                          load=load,
@@ -45,13 +45,8 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
-        self.service_distribution_125pc = 0
-        self.service_distribution_25pc = 0
-        self.service_distribution_375pc = 0  # initialise 25%, 50% and 75% service distribution counters
-        self.service_distribution_50pc = 0
-        self.service_distribution_625pc = 0
-        self.service_distribution_75pc = 0
-        self.service_distribution_875pc = 0
+        self.service_distribution_30pc = 0
+        self.service_distribution_60pc = 0  # initialise 25%, 50% and 75% service distribution counters
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.term_on_first_block = term_on_first_block # whether or not to terminate episode rewards after first blocking
@@ -74,7 +69,9 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         self.episode_num_transmitters = np.zeros(self.topology.number_of_nodes(),)
         self.episode_num_receivers = np.zeros(self.topology.number_of_nodes(),)
         self.reject_action = 1 if allow_rejection else 0
-
+                
+        self.capacity_scaling = capacity_scaling        
+        self.norm_scaling = norm_scaling 
         self.actions_output = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_output = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action), dtype=int)
         self.num_lightpaths_reused = 0
@@ -93,8 +90,8 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
             spaces = {
             'utilisation_ew':  gym.spaces.Box(0, 1, (self.topology.number_of_edges(),)),
             'utilisation_ts':  gym.spaces.Box(0, 1, (self.topology.number_of_edges(),)),
-            'source': gym.spaces.MultiBinary(14),
-            'destination': gym.spaces.MultiBinary(14)
+            'source': gym.spaces.MultiBinary(self.topology.number_of_nodes()),
+            'destination': gym.spaces.MultiBinary(self.topology.number_of_nodes())
             # 'bit_rate': gym.spaces.Box(0, max_bit_rate)
              }
         )
@@ -160,7 +157,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                     for path in range(self.k_paths):
                         p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
-                            arr[p.path_id,ch] = GN_model.calculate_lightpath_capacity(p.length,ch)
+                            arr[p.path_id,ch] = GN_model.calculate_lightpath_capacity(p.length,ch)*self.capacity_scaling
 
         return np.max(arr)
 
@@ -178,7 +175,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                     for path in range(self.k_paths):
                         p = self.k_shortest_paths[n1, n2][path]
                         for ch in range(nch):
-                            capacity = GN_model.calculate_lightpath_capacity(p.length,ch)
+                            capacity = GN_model.calculate_lightpath_capacity(p.length,ch)*self.capacity_scaling
                             ligthpath = LightPath(ch, capacity)
                             p.lightpaths[ch] = ligthpath
 
@@ -208,7 +205,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
 
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -225,7 +222,7 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
                 self.service.accepted = True
                 self.services_accepted += 1
                 self.episode_services_accepted += 1
-
+                self.episode_cum_services_accepted.append(self.episode_services_accepted)
                 self.service.new_lp = False
                 self.actions_taken[action] += 1
                 self.episode_actions_taken[action] += 1
@@ -247,32 +244,20 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
         self.services_processed += 1
         self.episode_services_processed += 1
         self.episode_cum_services_processed.append(self.episode_services_processed)
-        self.episode_cum_services_accepted.append(self.episode_services_accepted)
+
         self.topology.graph['services'].append(self.service)
 
 
         reward = self.reward()
 
-        if self.episode_services_processed == int(self.episode_length*0.125):
-            self.service_distribution_125pc = self.topology.graph['available_wavelengths'].flatten().tolist()
 
-        if self.episode_services_processed == int(self.episode_length*0.25):
-            self.service_distribution_25pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+        #if self.episode_services_processed == 3000:
+        if self.episode_services_accepted == int(self.episode_length*0.3):
+            self.service_distribution_30pc = self.topology.graph['available_wavelengths'].flatten().tolist()
 
-        if self.episode_services_processed == int(self.episode_length*0.375):
-            self.service_distribution_375pc = self.topology.graph['available_wavelengths'].flatten().tolist()
-
-        if self.episode_services_processed == int(self.episode_length*0.5):
-            self.service_distribution_50pc = self.topology.graph['available_wavelengths'].flatten().tolist()
-
-        if self.episode_services_processed == int(self.episode_length*0.625):
-            self.service_distribution_625pc = self.topology.graph['available_wavelengths'].flatten().tolist()
-
-        if self.episode_services_processed == int(self.episode_length*0.75):
-            self.service_distribution_75pc = self.topology.graph['available_wavelengths'].flatten().tolist()
-
-        if self.episode_services_processed == int(self.episode_length*0.875):
-            self.service_distribution_875pc = self.topology.graph['available_wavelengths'].flatten().tolist()
+        #if self.episode_services_processed == 6000:
+        if self.episode_services_accepted == int(self.episode_length*0.6):
+            self.service_distribution_60pc = self.topology.graph['available_wavelengths'].flatten().tolist()
 
 
         info = {
@@ -286,13 +271,8 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
             'lightpath_action_taken_probability': np.sum(self.actions_taken) / self.services_processed,
             'throughput': self.get_throughput(),
             'service_distribution': self.topology.graph['available_wavelengths'].flatten().tolist(),
-            'service_distribution_125pc': self.service_distribution_125pc,
-            'service_distribution_25pc': self.service_distribution_25pc,
-            'service_distribution_375pc': self.service_distribution_375pc,
-            'service_distribution_50pc': self.service_distribution_50pc,
-            'service_distribution_625pc': self.service_distribution_625pc,
-            'service_distribution_75pc': self.service_distribution_75pc,
-            'service_distribution_875pc': self.service_distribution_875pc
+            'service_distribution_30pc': self.service_distribution_30pc,
+            'service_distribution_60pc': self.service_distribution_60pc
         }
 
         self._new_service = False
@@ -433,8 +413,8 @@ class RWAEnvFOCSV4_5(OpticalNetworkEnv):
             utilisation_ew.append(edge[2]['utilization_ew'])
             utilisation_ts.append(edge[2]['utilization_ts'])
         utilisation_ew = np.array(utilisation_ew)
-        utilisation_ew = utilisation_ew / self.num_spectrum_resources
-        norm_ts = ((self.max_cap*1e3)/self.exp_request_res)*self.num_spectrum_resources
+        utilisation_ew = utilisation_ew / (self.num_spectrum_resources*self.norm_scaling)
+        norm_ts = ((self.max_cap*1e12)/self.exp_request_res)*self.num_spectrum_resources*self.norm_scaling
         utilisation_ts = np.array(utilisation_ts)
         utilisation_ts = utilisation_ts / norm_ts
         numnodes = self.topology.number_of_nodes()

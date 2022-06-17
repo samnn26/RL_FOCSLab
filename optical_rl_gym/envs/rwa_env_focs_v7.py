@@ -47,7 +47,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
         #  fill_value=-1, dtype=np.int)
         # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
-        self.highest_nsr = self.get_highest_nsr()
+        #self.highest_nsr = self.get_highest_nsr()
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
