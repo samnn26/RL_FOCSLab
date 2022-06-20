@@ -268,3 +268,71 @@ def kSP_MU_binary(env) -> Sequence[int]:
                     decision = (idp, wavelength)
 
     return decision
+
+def CA_MU_TEST(env) -> Sequence[int]:
+    #init the varialbes for CA, MU and decision
+    ca_highest_weight = -1
+    mu_highest_weight = -1
+    mu_wavelength = -1
+    ca_path = -1
+    decision = (env.k_paths, env.num_spectrum_resources)
+
+    #first loop through the paths
+    for path_id in range(env.k_paths):
+        path = env.k_shortest_paths[env.service.source,env.service.destination][path_id]
+        path_weight = 0
+        #loop through the links in each path
+        for node_id in range(len(path.node_list) - 1):
+            link_weight = 0
+            #calculate the propotion of unused wavelengths for  a link
+            wavelen_on_link = np.count_nonzero(env.topology.graph['available_wavelengths'][
+                      env.topology[path.node_list[node_id]][path.node_list[node_id + 1]]['index'],
+                      :])
+            unused_wavelen_on_link = env.num_spectrum_resources - wavelen_on_link
+            propotion_of_unused_wavelen = unused_wavelen_on_link/env.num_spectrum_resources
+
+            #calculate the link weight for the link using propotion of usused wavelengths / link length
+            link_len = env.topology[path.node_list[node_id]][path.node_list[node_id + 1]]['weight']
+            link_weight = propotion_of_unused_wavelen/link_len
+            #add link weight to path weight
+            path_weight = path_weight + link_weight
+        #end loop links
+        # if path weight > CA highest weight then update the highest CA weight variable
+        if path_weight > ca_highest_weight:
+            ca_highest_weight = path_weight
+            ca_path = path_id
+            print(" least congested path so far is ", ca_path, " and the congestion weight is ", ca_highest_weight)
+            #loop through wavelenths
+            for wavelength in range(env.num_spectrum_resources):
+                
+                #if path is already used and leftover capacity avaiilable then ccalculate wavelen_weight
+                if env.does_lightpath_exist(path,wavelength) and env.get_available_lightpath_capacity(path,
+                wavelength) > env.service.bit_rate:
+                    wavelen_weight = np.sum(env.lightpath_service_allocation[:,wavelength])
+
+                    # if wavelen_weight is greater than mu_weight update mu_weight, update mu_wavelenth
+                    if wavelen_weight > mu_highest_weight:
+                        mu_wavelength = wavelength
+                        mu_highest_weight = wavelen_weight
+                        print("wavelen weight ", wavelen_weight)
+                        decision = (ca_path, mu_wavelength)
+                    
+                    
+                #else if w#if path is free and capacity avaiilable then ccalculate wavelen_weight
+                elif env.is_lightpath_free(path, wavelength) and env.get_available_lightpath_capacity(path, wavelength) > env.service.bit_rate:
+                    wavelen_weight = np.sum(env.lightpath_service_allocation[:,wavelength])
+
+                    # if wavelen_weight is greater than mu_weight update mu_weight, update mu_wavelenth
+                    if wavelen_weight > mu_highest_weight:
+                        mu_wavelength = wavelength
+                        mu_highest_weight = wavelen_weight
+                        print("wavelen weight ", wavelen_weight)
+                        decision = (ca_path, mu_wavelength)
+
+               
+
+
+
+        #end loop wavelengths
+    #end loop paths
+    return decision
