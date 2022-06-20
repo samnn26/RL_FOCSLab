@@ -277,7 +277,7 @@ def CA_MU_TEST(env) -> Sequence[int]:
     ca_path = -1
     decision = (env.k_paths, env.num_spectrum_resources)
 
-    #first loop through the paths
+    #loop through the paths
     for path_id in range(env.k_paths):
         path = env.k_shortest_paths[env.service.source,env.service.destination][path_id]
         path_weight = 0
