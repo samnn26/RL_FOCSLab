@@ -26,7 +26,6 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
                  node_request_probabilities=None,
                  allow_rejection=True,
                  k_paths=5,
-                 #seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, term_on_first_block=False):
                  seed=None, reset=True, exp_request_res=25e9, exp_request_lambda=1, capacity_scaling=1.0, norm_scaling=1.0):
         super().__init__(topology=topology,
                          episode_length=episode_length,
@@ -113,8 +112,6 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
     Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
     The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
     """
-    """I don't know what actions_output does - why is it incremented here?"""
-    """same for episode_actions"""
 
     # def reward(self):  # overwrite reward function
     #     breakpoint()
@@ -141,13 +138,6 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
         ligthpath.available_capacity = new_capacity
         #print("available capacity updated for lightpath ", channel_id, " new capacity ", ligthpath.available_capacity, " Tbps")
 
-    # def get_available_lightpath_capacity(self, source, dest, path_ind, channel_ind):
-    #
-    #     p = self.k_shortest_paths[source, dest][path_ind]
-    #     c = p.lightpaths[channel_ind]
-    #     c_bps = c.available_capacity*1e12
-    #     #print("available capacity for ligthpath ", channel_id, " is ", c_bps, "bps")
-    #     return c_bps #converted to bps(from Tbps)
     def get_available_lightpath_capacity(self, path, channel_ind):
 
         c = path.lightpaths[channel_ind]
@@ -194,11 +184,7 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
 
 
     def step(self, action: int):
-        # print("source" + str(self.service.source))
-        # print("destination" + str(self.service.destination))
-        # if not self.action_masks()[action]:
-        #     print("Invalid action!")
-        #     raise ValueError('Agent chose invalid action!')
+        
         path = int(np.floor(action / self.num_spectrum_resources))
         wavelength = action - int(np.floor(action / self.num_spectrum_resources))*self.num_spectrum_resources
 
@@ -251,9 +237,7 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
         else:
             self.service.accepted = False
 
-        # if not self.service.accepted:
-        #     self.actions_taken[self.k_paths * self.num_spectrum_resources + self.reject_action] += 1  # dont understand this...
-
+       
         self.services_processed += 1
         self.episode_services_processed += 1
         self.episode_cum_services_processed.append(self.episode_services_processed)
@@ -323,13 +307,9 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
         # if not only counters, the whole environment needs to be reset
         super().reset()
         self.initialise_lightpath_capacities()
-        # self.lightpath_capacities = self.initialise_capacity_container()
+        
 
-        """
-        Old version of available wavelengths: array that stores the state of each wavelength on each edge, 1=available, 0=used
-        New version of available wavelengths: array that stores the number of services on each wavelength on each edge.
-        """
-        #
+       
         self.cumulative_throughput = []
         self.topology.graph['available_wavelengths'] = np.zeros((self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
         self.no_valid_actions = 0
@@ -566,9 +546,6 @@ class RWAEnvFOCSV4_8(OpticalNetworkEnv):
 
 
 
-"""
-not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
-"""
 def get_path_capacity(env: RWAEnvFOCSV4_8, path: Path) -> int:
     capacity = 0
     # checks all wavelengths to see which ones are available
@@ -584,22 +561,13 @@ def get_path_capacity(env: RWAEnvFOCSV4_8, path: Path) -> int:
             capacity += 1  # increments
     return capacity
 
-"""
-this is what we need to do - loop first over the wavelengths and then get the agent to choose the path, after we check its availability
-we need to modify the tracking of the paths, i.e. is_lightpath_free will become is_path_capacity_sufficient() ...
-this is equivalent to Robert's FF-SP algo. - needs another loop over the k paths to make it FF-kSP
-"""
+
 def shortest_path_first_fit(env: RWAEnvFOCSV4_8) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
         if env.is_lightpath_free(env.k_shortest_paths[env.service.source, env.service.destination][0], wavelength):
             return (0, wavelength)
     # if no path is found, return out-of-bounds indices
     return (env.k_paths, env.num_spectrum_resources)
-
-
-"""
-working heuristics have moved to optical_rl_gym/heuristics.py !
-"""
 
 
 """
@@ -658,27 +626,4 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
     def step(self, action):
         return self.env.step(self.action(action))
 
-# do the same with MU wavelength selection!
-
-# class FirstFitPathOnlyObservation(gym.ObservationWrapper):
-#
-#     def __init__(self, env: RWAEnv):
-#         super().__init__(env)
-#         self.observation_space = env.observation_space
-#
-#     def observation(self, obs):
-#         for wavelength in range(self.env.num_spectrum_resources):  # scan over wavelengths to find the first available
-#             viable_paths = []
-#             for path in range(self.k_paths):
-#                 if self.env.is_lightpath_free(self.env.topology.graph['ksp'][self.env.service.source, self.env.service.destination][path], wavelength):
-#                     viable_paths.append(path) # save the paths that are viable (will modify this later to be capacity-based)
-#             if len(viable_paths) > 0: # if at least one k shortest path for this wavelength
-#                 return {'viablekSPs': self.topology.graph['ksp'][self.env.service.source, self.env.service.destination][viable_paths],
-#                         'service': self.service}
-#         if len(viable_paths) == 0: # if none of the wavelengths actually fit
-#             raise ValueError('Ran out of wavelengths!')  # need to work out how to handle this - it should block...
-
-
-# def observation(self):
-#     return {'topology': self.topology,
-#             'service': self.service}
+           'service': self.service}
