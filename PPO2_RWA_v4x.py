@@ -150,19 +150,15 @@ def make_env_multiproc(env_id, rank, env_args, log_dirs, seed=0):
 def main():
     # loading the topology binary file containing the graph and the k-shortest paths
     current_directory = os.getcwd()
-    #with open(current_directory+'/topologies/nsfnet_chen_5-paths.h5', 'rb') as f:
+   
     with open(current_directory+'/topologies/'+topology_name+'.h5', 'rb') as f:
-   #     topology = pickle.load(f)
-    # with open(current_directory+'/topologies/3_node_network_sym.h5', 'rb') as f:
-    #     topology = pickle.load(f)
-    # node_request_probabilities = np.array([0.333333,0.333333,0.333333])
-    # with open(f'/Users/joshnevin/RL_FOCSLab/topologies/nsfnet_chen_5-paths_directional.h5', 'rb') as f:
+   
         topology = pickle.load(f)
     #node_request_probabilities = np.array([0.01801802, 0.04004004, 0.05305305, 0.01901902, 0.04504505,
     #       0.02402402, 0.06706707, 0.08908909, 0.13813814, 0.12212212,
     #       0.07607608, 0.12012012, 0.01901902, 0.16916917])
     node_request_probabilities = pickle.load(open("node_req_probs/"+node_req_prbs+".pkl",'rb'))
-    #load = int(1e10)
+    
     env_args = dict(topology=topology, seed=10, load = load,
                     allow_rejection=False, # the agent cannot proactively reject a request
                     mean_service_holding_time=holdingtime, # value is not set as in the paper to achieve comparable reward values
@@ -172,7 +168,7 @@ def main():
     # Create log dir
     today = datetime.today().strftime('%Y-%m-%d')
     exp_num = expname
-    #continue_training = False
+   
     number_of_cores = numcores
 
     if len(continuedexp)>0:
@@ -187,7 +183,7 @@ def main():
         agent = MaskablePPO.load(model_dir+'/best_model')
         agent.set_env(env)
         a = agent.learn(total_timesteps=int(numtimesteps), callback=callback)
-        #pickle.dump(env_args, open(log_dirs[0] + "env_args.pkl", 'wb'))
+        
 
     else:
         if number_of_cores == 1:
@@ -203,7 +199,7 @@ def main():
             else:
                 agent = MaskablePPO('MultiInputPolicy', env, verbose=0, policy_kwargs=policy_args, gamma=.95, learning_rate=10e-5, device='cpu')
             a = agent.learn(total_timesteps=1000, callback=callback)
-            #results_plotter.plot_results([log_dir], 1e5, results_plotter.X_TIMESTEPS, "RWA")
+           
             pickle.dump(env_args, open(log_dir + "env_args.pkl", 'wb'))
 
         else:
