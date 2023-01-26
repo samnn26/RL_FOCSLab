@@ -164,3 +164,7 @@ register(
     id='RWAFOCS-v7',
     entry_point='optical_rl_gym.envs:RWAEnvFOCSV7',
 )
+register(
+    id='RWALightpathReuse-v0',
+    entry_point='optical_rl_gym.envs:RWAEnvLightpathReuseV0',
+)
