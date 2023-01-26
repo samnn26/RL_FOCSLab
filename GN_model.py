@@ -91,25 +91,3 @@ def calculate_max_snr(sig_ase, eta_unif):
     return (1/3) * ( (4 / (sig_ase**2 * eta_unif))**(1/3) )
 
 
-############################## OLD VERSION (based on Pogg) ##############################
-
-# def calculate_gnli_ny(g_wdm, bw_tot, l_effa, l_eff, gamma, beta2, n_span):
-#     '''
-#     calculate the NLI noise power spectral density in W/Hz (assumes total BW in THz, beta2 in ps^2/km, gamma in /W/km, Gwdm in W/Hz)
-#     '''
-#     gnli_0_ny = 1e24*(8/27)*(gamma**2)*(g_wdm**3)*(l_eff**2)*((np.arcsinh((np.pi**2)*0.5*beta2*l_effa*(bw_tot**2)  ) )/(np.pi*beta2*l_effa ))
-#     return gnli_0_ny*n_span  # incoherent addition of NLI noise
-#
-# def calculate_ase_tot(gain_lin, nf_lin, f_centre, r_sym, n_span):
-#     '''
-#     calculate the ASE noise power in [W] (assumes symbol rate in GBd and f in Hz)
-#     '''
-#     h_p = 6.63*1e-34  # Planck's constant [Js]
-#     return nf_lin*h_p*f_centre*(gain_lin - 1)*r_sym*1e9*n_span
-#
-# def calculate_snr(g_nli, ase_tot, pch_lin, b_meas):
-#     '''
-#     calculate linear SNR
-#     '''
-#     # b_meas = BW over which noise is measured in units of GHz, b_meas = r_sym for Nyquist channels
-#     return pch_lin/(ase_tot + g_nli*b_meas*1e9)
