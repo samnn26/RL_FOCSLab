@@ -38,16 +38,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
                          k_paths=k_paths)
         self.term_on_first_block = term_on_first_block  # whether or not to terminate episode rewards after first blocking
         self.exp_request_res = exp_request_res
-        # vector that stores the service IDs for which the wavelengths are allocated to
-        """
-        for now spectrum_wavelengths_allocation is removed - if we want to track this we need to
-        allow for multiple service IDs per wavelength per edge...
-        """
-        # self.max_services_allocation = 1000 # define this to be large enough to never be exceeded
-        # self.spectrum_wavelengths_allocation = np.full((self.topology.number_of_edges(), self.num_spectrum_resources, self.max_services_allocation),
-        #  fill_value=-1, dtype=np.int)
-        # array that tracks how many services are allocated to each lightpath, indexed by path ID and wavelength
-        #self.highest_nsr = self.get_highest_nsr()
+        
         self.no_valid_actions = 0
         self.episode_no_valid_actions = 0
         self.lightpath_service_allocation = np.zeros([self.topology.number_of_nodes()*
@@ -73,21 +64,15 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         self.actions_taken = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action), dtype=int)
         self.episode_actions_taken = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action),
                                               dtype=int)
-        """
-        can probably leave this as-is and overwrite it with an action space wrapper, as Carlos does below...
-        """
+        
         self.action_space = gym.spaces.Discrete(((self.k_paths * self.num_spectrum_resources) + self.reject_action))
         #shape = 1 + 2 * self.topology.number_of_nodes() + (2 * self.j + 3) * self.k_paths
 
-        shape =  2 * self.topology.number_of_nodes() + self.k_paths*self.num_spectrum_resources#bit rate, src, dest, NSR on edges
-       # self.initialise_nsr()
+        shape =  2 * self.topology.number_of_nodes() + self.k_paths*self.num_spectrum_resources
+       
         self.observation_space = gym.spaces.Box(low=0.0, high=1.0, dtype=np.float32, shape=(shape,))
 
-
-        #nodes = self.topology.number_of_nodes()
-        #number_of_bitrates = 100 # test
-        #edges = self.topology.number_of_edges() #to store the noise to signal ratio (NSR) of the edges
-        #self.observation_space= gym.spaces.MultiDiscrete((number_of_bitrates,nodes,nodes,edges))
+ 
         self.action_space.seed(self.rand_seed)
         self.observation_space.seed(self.rand_seed)
 
@@ -99,14 +84,6 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         if reset:
             self.reset(only_counters=False)
         self.initialise_lightpath_capacities()
-
-
-    """
-    Method that represents a step into the environment, i.e., the provisioning (or rejection) of a service request.
-    The action parameter is a is a sequence with two elements, the first representing the path index, and the second representing the wavelength.
-    """
-    """I don't know what actions_output does - why is it incremented here?"""
-    """same for episode_actions"""
 
 
     def update_available_lightpath_capacity(self, path, channel_ind, capacity_allocated, provision):
@@ -241,10 +218,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
 
     def reset(self, only_counters=False):
         # resetting counters for the episode
-        # if only_counters:
-        #     print("true")
-        # else:
-        #     print("false")
+      
 
         self.episode_actions_output = np.zeros((self.k_paths * self.num_spectrum_resources + self.reject_action),
                                                dtype=int)
@@ -267,11 +241,6 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         self.initialise_lightpath_capacities()
         # self.lightpath_capacities = self.initialise_capacity_container()
 
-        """
-        Old version of available wavelengths: array that stores the state of each wavelength on each edge, 1=available, 0=used
-        New version of available wavelengths: array that stores the number of services on each wavelength on each edge.
-        """
-        #
         self.cumulative_throughput = []
         self.topology.graph['available_wavelengths'] = np.zeros(
             (self.topology.number_of_edges(), self.num_spectrum_resources), dtype=int)
@@ -475,14 +444,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
         :return:
         """
         pass
-        # last_update = self.topology.graph['last_update']
-        # time_diff = self.current_time - last_update
-        # if self.current_time > 0:
-        #     for service in self.topology.graph["running_services"]:
-        #         cur_throughtput += service.bit_rate
-        #     utilization = ((last_throughput * last_update) + (cur_throughtput * time_diff)) / self.current_time
-        #     self.topology.graph['throughput'] = utilization
-
+      
     def _update_link_stats(self, node1, node2):
         last_update = self.topology[node1][node2]['last_update']
         time_diff = self.current_time - self.topology[node1][node2]['last_update']
@@ -501,11 +463,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
 
         self.topology[node1][node2]['last_update'] = self.current_time
 
-    """
-    we want to call is_lightpath_free for each of the k-shortest paths on each wavelength in turn - only if none are free
-    do we then move on to the next wavelength
-    """
-
+ 
     def is_lightpath_free(self, path: Path, wavelength: int) -> bool:
          # if wavelength is out of range, return false
         if wavelength > self.num_spectrum_resources:
@@ -571,9 +529,7 @@ class RWAEnvFOCSV7(OpticalNetworkEnv):
 
 
 
-"""
-not sure what this function is doing... it seems to be defined to be used in least_loaded_path_first_fit
-"""
+
 def get_path_capacity(env: RWAEnvFOCSV7, path: Path) -> int:
     capacity = 0
     # checks all wavelengths to see which ones are available
@@ -589,11 +545,7 @@ def get_path_capacity(env: RWAEnvFOCSV7, path: Path) -> int:
             capacity += 1  # increments
     return capacity
 
-"""
-this is what we need to do - loop first over the wavelengths and then get the agent to choose the path, after we check its availability
-we need to modify the tracking of the paths, i.e. is_lightpath_free will become is_path_capacity_sufficient() ...
-this is equivalent to Robert's FF-SP algo. - needs another loop over the k paths to make it FF-kSP
-"""
+
 def shortest_path_first_fit(env: RWAEnvFOCSV7) -> Sequence[int]:
     for wavelength in range(env.num_spectrum_resources):
         if env.is_lightpath_free(env.k_shortest_paths[env.service.source, env.service.destination][0], wavelength):
@@ -671,27 +623,3 @@ class PathOnlyFirstFitAction(gym.ActionWrapper):
     def step(self, action):
         return self.env.step(self.action(action))
 
-
-
-# class FirstFitPathOnlyObservation(gym.ObservationWrapper):
-#
-#     def __init__(self, env: RWAEnv):
-#         super().__init__(env)
-#         self.observation_space = env.observation_space
-#
-#     def observation(self, obs):
-#         for wavelength in range(self.env.num_spectrum_resources):  # scan over wavelengths to find the first available
-#             viable_paths = []
-#             for path in range(self.k_paths):
-#                 if self.env.is_lightpath_free(self.env.topology.graph['ksp'][self.env.service.source, self.env.service.destination][path], wavelength):
-#                     viable_paths.append(path) # save the paths that are viable (will modify this later to be capacity-based)
-#             if len(viable_paths) > 0: # if at least one k shortest path for this wavelength
-#                 return {'viablekSPs': self.topology.graph['ksp'][self.env.service.source, self.env.service.destination][viable_paths],
-#                         'service': self.service}
-#         if len(viable_paths) == 0: # if none of the wavelengths actually fit
-#             raise ValueError('Ran out of wavelengths!')  # need to work out how to handle this - it should block...
-
-
-# def observation(self):
-#     return {'topology': self.topology,
-#             'service': self.service}
